@@ -50,7 +50,7 @@ public class Tracker.Query {
 
 		// FTS
 		"{
-		   ?urn fts:match \"%s\"
+		   ?urn fts:match '%s'
 		 } UNION {
 		   ?urn nao:hasTag ?tag .
                    FILTER (fn:contains (fn:lower-case (nao:prefLabel(?tag)), \"%s\"))
