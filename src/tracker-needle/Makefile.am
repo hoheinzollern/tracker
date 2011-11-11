@@ -1,9 +1,9 @@
 include $(top_srcdir)/Makefile.decl
 
-bin_PROGRAMS = tracker-needle
+bin_PROGRAMS = tracker-needle tracker-scope
 
 AM_VALAFLAGS = \
-	--pkg gtk+-3.0 --pkg gio-2.0 \
+	--pkg gtk+-3.0 --pkg gio-2.0 --pkg unity \
 	$(BUILD_VALAFLAGS) \
 	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi \
 	config.vapi
@@ -35,6 +35,10 @@ tracker_needle_SOURCES = \
 	tracker-needle.vala \
 	tracker-view.vala
 
+tracker_scope_SOURCES = \
+	tracker-query.vala \
+	tracker-scope.vala
+
 @INTLTOOL_DESKTOP_RULE@
 
 uidir = $(datadir)/tracker
@@ -42,6 +46,12 @@ ui_DATA = tracker-needle.ui
 
 desktopdir = $(datadir)/applications
 desktop_DATA = tracker-needle.desktop
+
+scopedir = /usr/share/unity/lenses/files
+scope_DATA = tracker-scope.scope
+
+servicedir = /usr/share/dbus-1/services
+service_DATA = tracker-scope.service
 
 BUILT_SOURCES = \
 	tracker_needle_vala.stamp
@@ -52,5 +62,7 @@ CLEANFILES = \
 EXTRA_DIST = \
 	$(ui_DATA) \
 	$(desktop_DATA) \
+	$(scope_DATA) \
+	$(service_DATA) \
 	config.vapi
 

@@ -161,6 +161,7 @@ DBUS_REQUIRED=1.3.1
 GLIB_REQUIRED=2.28.0
 PANGO_REQUIRED=1.0.0
 GTK_REQUIRED=3.0.0
+UNITY_REQUIRED=4.0.0
 LIBXML2_REQUIRED=2.6
 LIBNOTIFY_REQUIRED=0.4.3
 HAL_REQUIRED=0.5
@@ -439,7 +440,8 @@ TRACKER_NEEDLE_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
                          gio-unix-2.0 >= $GLIB_REQUIRED
                          gthread-2.0  >= $GLIB_REQUIRED
                          gmodule-2.0  >= $GLIB_REQUIRED
-                         gtk+-3.0     >= $GTK_REQUIRED"
+                         gtk+-3.0     >= $GTK_REQUIRED
+			 unity	      >= $UNITY_REQUIRED"
 
 PKG_CHECK_MODULES(TRACKER_NEEDLE, [$TRACKER_NEEDLE_REQUIRED],
                   [have_tracker_needle=yes],

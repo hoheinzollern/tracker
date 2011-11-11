@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.gnome.Tracker.Scope
+Exec=/usr/local/bin/tracker-scope
