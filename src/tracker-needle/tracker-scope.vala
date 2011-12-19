@@ -11,7 +11,7 @@ class Tracker.Scope {
 		scope.filters_changed.connect(on_filters_changed);
 	}
 
-	public void export() {
+	public void export() throws IOError {
 		scope.export();
 	}
 
@@ -42,7 +42,7 @@ class Tracker.Scope {
 		update_model.begin(search, scope.results_model);
 	}
 
-	private async void update_model(Unity.LensSearch search, Dee.Model model) {
+	private async void update_model(Unity.LensSearch search, Dee.Model model) throws Error {
 		model.clear();
 		scope.freeze_notify();
 
@@ -50,16 +50,6 @@ class Tracker.Scope {
 				scope.thaw_notify();
 				return false;
 			});
-
-		if (false) // Code disabled
-		foreach (var filter in scope.filters) {
-			print("%s\n", filter.id);
-			var fo = filter as Unity.OptionsFilter;
-			if (fo != null)
-				foreach (var option in fo.options) {
-					print("%s %s\n", option.id, option.active ? "active" : "");
-				}
-		}
 
 		var query = new Tracker.Query();
 		query.offset = 0;
@@ -73,7 +63,7 @@ class Tracker.Scope {
 		if (type_value != null) {
 			debug("%s: %s\n", type_filter.id, type_value.id);
 			switch (type_value.id) {
-			case "other": // TODO: support in query engine
+			case "other":
 				break;
 			case "audio":
 				type = Tracker.Query.Type.MUSIC;
@@ -87,7 +77,8 @@ class Tracker.Scope {
 			case "images":
 				type = Tracker.Query.Type.IMAGES;
 				break;
-			case "presentations": // TODO: support in query engine
+			case "presentations":
+				type = Tracker.Query.Type.DOCUMENTS; // FIXME: find JUST presentations!
 				break;
 			case "videos":
 				type = Tracker.Query.Type.VIDEOS;
@@ -119,30 +110,43 @@ class Tracker.Scope {
 		var cursor = yield query.perform_async(type,
 											   Tracker.Query.Match.FTS,
 											   args, cancellable);
-		if (cursor == null) return;
-		bool b = yield cursor.next_async(cancellable);
+		if (cursor == null) {
+			throw new Error(1, 1, "Could not get cursor");
+		}
 
-		while (b) {
+		try {
+ 			bool b = yield cursor.next_async(cancellable);
 
-			var urn = cursor.get_string(0);
-			var url = cursor.get_string(1);
-			var fileName = cursor.get_string(2);
-			var title = cursor.get_string(3);
-			var mimeType = cursor.get_string(4);
+			while (b) {
 
-			var file = File.new_for_uri(url);
-			var info = file.query_info("standard::icon", 0, cancellable);
-			var icon = info.get_icon().to_string();
+				//var urn = cursor.get_string(0);
+				var url = cursor.get_string(1);
+				var fileName = cursor.get_string(2);
+				//var title = cursor.get_string(3);
+				var mimeType = cursor.get_string(4);
+
+				string icon = "";
+
+				try {
+					var file = File.new_for_uri(url);
+					var info = file.query_info("standard::icon", 0, cancellable);
+					icon = info.get_icon().to_string();
+				} catch (IOError e1) {
+					debug(e1.message);
+				}
 			
-			model.append(url, // activation uri
-						 icon, // icon uri
-						 0, // category index
-						 mimeType, // mime type
-						 fileName, // name
-						 "description", // comment
-						 url // link uri
-				);
-			b = yield cursor.next_async(cancellable);
+				model.append(url, // activation uri
+							 icon, // icon uri
+							 0, // category index
+							 mimeType, // mime type
+							 fileName, // name
+							 "description", // comment
+							 url // link uri
+					);
+				b = yield cursor.next_async(cancellable);
+			}
+		} catch (Error e2) {
+			debug(e2.message);
 		}
 		
 		debug("Result size: %d\n", (int)model.get_n_rows());
@@ -182,7 +186,12 @@ static int main(string[] args) {
 	}
 
 	var scope = new Tracker.Scope();
-	scope.export();
+	try {
+		scope.export();
+	} catch (IOError e) {
+		debug("Could not start this scope:\n" + e.message);
+		return 1;
+	}
 
 	var app = new Application(dbus_name, ApplicationFlags.IS_SERVICE);
 
