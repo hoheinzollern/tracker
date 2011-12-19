@@ -21,6 +21,8 @@
 #include "tracker-extract-client.h"
 
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
 #include <gio/gunixfdlist.h>
 #include <gio/gunixinputstream.h>
 
@@ -44,16 +46,25 @@ typedef struct {
 	GOutputStream *output_stream;
 	SendAndSpliceCallback callback;
 	GCancellable *cancellable;
+	GCancellable *inner_cancellable;
 	gpointer data;
 	gboolean splice_finished;
 	gboolean dbus_finished;
 	GError *error;
+	guint cancel_handler_id;
 } SendAndSpliceData;
 
 typedef struct {
 	TrackerExtractInfo *info;
 	GSimpleAsyncResult *res;
 } MetadataCallData;
+
+static void
+propagate_cancellation (GCancellable *cancellable,
+                        GCancellable *inner_cancellable)
+{
+	g_cancellable_cancel (inner_cancellable);
+}
 
 static SendAndSpliceData *
 send_and_splice_data_new (GInputStream          *unix_input_stream,
@@ -69,9 +80,15 @@ send_and_splice_data_new (GInputStream          *unix_input_stream,
 	data->unix_input_stream = unix_input_stream;
 	data->buffered_input_stream = buffered_input_stream;
 	data->output_stream = output_stream;
+	data->inner_cancellable = g_cancellable_new ();
 
 	if (cancellable) {
 		data->cancellable = g_object_ref (cancellable);
+
+		data->cancel_handler_id =
+			g_cancellable_connect (data->cancellable,
+			                       G_CALLBACK (propagate_cancellation),
+			                       data->inner_cancellable, NULL);
 	}
 
 	data->callback = callback;
@@ -83,13 +100,18 @@ send_and_splice_data_new (GInputStream          *unix_input_stream,
 static void
 send_and_splice_data_free (SendAndSpliceData *data)
 {
+	if (data->cancellable) {
+		g_cancellable_disconnect (data->cancellable, data->cancel_handler_id);
+		g_object_unref (data->cancellable);
+	}
+
+	g_output_stream_close (data->output_stream, NULL, NULL);
+	g_input_stream_close (data->buffered_input_stream, NULL, NULL);
+
 	g_object_unref (data->unix_input_stream);
 	g_object_unref (data->buffered_input_stream);
 	g_object_unref (data->output_stream);
-
-	if (data->cancellable) {
-		g_object_unref (data->cancellable);
-	}
+	g_object_unref (data->inner_cancellable);
 
 	if (data->error) {
 		g_error_free (data->error);
@@ -150,6 +172,11 @@ send_and_splice_splice_callback (GObject      *source,
 		} else {
 			g_error_free (error);
 		}
+
+		/* Ensure the other operation is cancelled */
+		if (!data->dbus_finished) {
+			g_cancellable_cancel (data->inner_cancellable);
+		}
 	}
 
 	data->splice_finished = TRUE;
@@ -184,6 +211,11 @@ send_and_splice_dbus_callback (GObject      *source,
 			data->error = error;
 		} else {
 			g_error_free (error);
+		}
+
+		/* Ensure the other operation is cancelled */
+		if (!data->splice_finished) {
+			g_cancellable_cancel (data->inner_cancellable);
 		}
 	}
 
@@ -224,7 +256,7 @@ dbus_send_and_splice_async (GDBusConnection       *connection,
 	                                           G_DBUS_SEND_MESSAGE_FLAGS_NONE,
 	                                           -1,
 	                                           NULL,
-	                                           cancellable,
+	                                           data->inner_cancellable,
 	                                           send_and_splice_dbus_callback,
 	                                           data);
 
@@ -233,7 +265,7 @@ dbus_send_and_splice_async (GDBusConnection       *connection,
 	                              G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
 	                              G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
 	                              0,
-	                              cancellable,
+	                              data->inner_cancellable,
 	                              send_and_splice_splice_callback,
 	                              data);
 }
@@ -317,12 +349,30 @@ get_metadata_fast_async (GDBusConnection    *connection,
 	TrackerExtractInfo *info;
 	GDBusMessage *message;
 	GUnixFDList *fd_list;
-	int pipefd[2];
+	int pipefd[2], fd_index;
+	GError *error = NULL;
 	gchar *uri;
 
 	if (pipe (pipefd) < 0) {
+		gint err = errno;
+
 		g_critical ("Coudln't open pipe");
-		/* FIXME: Report async error */
+		g_simple_async_result_set_error (res,
+		                                 G_IO_ERROR,
+		                                 g_io_error_from_errno (err),
+		                                 "Could not open pipe to extractor");
+		g_simple_async_result_complete_in_idle (res);
+		return;
+	}
+
+	fd_list = g_unix_fd_list_new ();
+
+	if ((fd_index = g_unix_fd_list_append (fd_list, pipefd[1], &error)) == -1) {
+		g_simple_async_result_set_from_error (res, error);
+		g_simple_async_result_complete_in_idle (res);
+
+		g_object_unref (fd_list);
+		g_error_free (error);
 		return;
 	}
 
@@ -331,7 +381,6 @@ get_metadata_fast_async (GDBusConnection    *connection,
 	                                          DBUS_INTERFACE_EXTRACT,
 	                                          "GetMetadataFast");
 
-	fd_list = g_unix_fd_list_new ();
 	uri = g_file_get_uri (file);
 
 	g_dbus_message_set_body (message,
@@ -339,15 +388,13 @@ get_metadata_fast_async (GDBusConnection    *connection,
 	                                        uri,
 	                                        mime_type,
 	                                        graph,
-	                                        g_unix_fd_list_append (fd_list,
-	                                                               pipefd[1],
-	                                                               NULL)));
+	                                        fd_index));
 	g_dbus_message_set_unix_fd_list (message, fd_list);
 
 	/* We need to close the fd as g_unix_fd_list_append duplicates the fd */
 
-	close (pipefd[1]);
 	g_object_unref (fd_list);
+	close (pipefd[1]);
 	g_free (uri);
 
 	info = tracker_extract_info_new (file, mime_type, graph);

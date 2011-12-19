@@ -109,7 +109,6 @@ public class Tracker.Steroids : Object {
 			data_input_stream.read_all (query[0:query_size], out bytes_read);
 
 			data_input_stream = null;
-			input_stream = null;
 
 			request.debug ("query: %s", (string) query);
 
@@ -120,7 +119,11 @@ public class Tracker.Steroids : Object {
 
 				return null;
 			} else {
-				return yield Tracker.Store.sparql_update_blank ((string) query, priority, sender);
+				var variant = yield Tracker.Store.sparql_update_blank ((string) query, priority, sender);
+
+				request.end ();
+
+				return variant;
 			}
 		} catch (DBInterfaceError.NO_SPACE ie) {
 			throw new Sparql.Error.NO_SPACE (ie.message);
@@ -181,7 +184,6 @@ public class Tracker.Steroids : Object {
 			}
 
 			data_input_stream = null;
-			input_stream = null;
 
 			var builder = new VariantBuilder ((VariantType) "as");
 

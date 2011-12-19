@@ -27,9 +27,10 @@
 
 #include <strings.h>
 #include <string.h>
+#include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <stdlib.h>
 
 #include <glib.h>
 
@@ -40,7 +41,7 @@ GQuark tracker_date_error_quark (void) {
 	return g_quark_from_static_string ("tracker_date_error-quark");
 }
 
-time_t
+gdouble
 tracker_string_to_date (const gchar *date_string,
                         gint        *offset_p,
                         GError      **error)
@@ -54,8 +55,9 @@ tracker_string_to_date (const gchar *date_string,
 	GMatchInfo *match_info;
 	gchar      *match;
 	struct tm tm;
-	time_t    t;
+	gdouble t;
 	gint offset;
+	gboolean timezoned;
 
 	g_return_val_if_fail (date_string, -1);
 
@@ -111,9 +113,11 @@ tracker_string_to_date (const gchar *date_string,
 	g_free (match);
 
 	match = g_match_info_fetch (match_info, 8);
-	if (match) {
+	timezoned = (match && strlen (match) > 0);
+	g_free (match);
+
+	if (timezoned) {
 		/* timezoned */
-		g_free (match);
 
 		/* mktime() always assumes that "tm" is in locale time but we
 		 * want to keep control on time, so we go to UTC
@@ -128,7 +132,7 @@ tracker_string_to_date (const gchar *date_string,
 		offset = 0;
 
 		match = g_match_info_fetch (match_info, 9);
-		if (match) {
+		if (match && strlen (match) > 0) {
 			/* non-UTC timezone */
 
 			gboolean positive_offset;
@@ -171,9 +175,19 @@ tracker_string_to_date (const gchar *date_string,
 		offset = -timezone + (tm.tm_isdst > 0 ? 3600 : 0);
 #else
 		t2 = timegm (&tm);
-		offset = t2 - t;
+		offset = t2 - (time_t) t;
 #endif
 	}
+
+	match = g_match_info_fetch (match_info, 7);
+	if (match && strlen (match) > 0) {
+		char milliseconds[4] = "000\0";
+		/* first character of match is decimal point
+		   we're interested in a maximum of 3 decimal places (milliseconds) */
+		memcpy (milliseconds, match + 1, MIN (3, strlen (match + 1)));
+		t += (gdouble) atoi (milliseconds) / 1000;
+	}
+	g_free (match);
 
 	g_match_info_free (match_info);
 
@@ -185,19 +199,35 @@ tracker_string_to_date (const gchar *date_string,
 }
 
 gchar *
-tracker_date_to_string (time_t date_time)
+tracker_date_to_string (gdouble date_time)
 {
 	gchar     buffer[30];
+	time_t seconds;
+	gint64 total_milliseconds;
+	gint milliseconds;
 	struct tm utc_time;
 	size_t    count;
 
 	memset (buffer, '\0', sizeof (buffer));
 	memset (&utc_time, 0, sizeof (struct tm));
 
-	gmtime_r (&date_time, &utc_time);
+	total_milliseconds = (gint64) round (date_time * 1000);
+	milliseconds = total_milliseconds % 1000;
+	if (milliseconds < 0) {
+		milliseconds += 1000;
+	}
+	seconds = (time_t) ((total_milliseconds - milliseconds) / 1000);
+	gmtime_r (&seconds, &utc_time);
 
-	/* Output is ISO 8601 format : "YYYY-MM-DDThh:mm:ssZ" */
-	count = strftime (buffer, sizeof (buffer), "%FT%TZ", &utc_time);
+	/* Output is ISO 8601 format : "YYYY-MM-DDThh:mm:ss" */
+	count = strftime (buffer, sizeof (buffer), "%FT%T", &utc_time);
+
+	/* Append milliseconds (if non-zero) and time zone */
+	if (milliseconds > 0) {
+		snprintf (buffer + count, sizeof (buffer) - count, ".%03dZ", milliseconds);
+	} else {
+		buffer[count] = 'Z';
+	}
 
 	return count > 0 ? g_strdup (buffer) : NULL;
 }
@@ -205,7 +235,7 @@ tracker_date_to_string (time_t date_time)
 static void
 date_time_value_init (GValue *value)
 {
-	value->data[0].v_int64 = 0;
+	value->data[0].v_double = 0;
 	value->data[1].v_int = 0;
 }
 
@@ -213,7 +243,7 @@ static void
 date_time_value_copy (const GValue *src_value,
                       GValue       *dest_value)
 {
-	dest_value->data[0].v_int64 = src_value->data[0].v_int64;
+	dest_value->data[0].v_double = src_value->data[0].v_double;
 	dest_value->data[1].v_int = src_value->data[1].v_int;
 }
 
@@ -254,13 +284,13 @@ tracker_date_time_get_type (void)
 
 void
 tracker_date_time_set (GValue  *value,
-                       gint64   time,
+                       gdouble  time,
                        gint     offset)
 {
 	g_return_if_fail (G_VALUE_HOLDS (value, TRACKER_TYPE_DATE_TIME));
 	g_return_if_fail (offset >= -14 * 3600 && offset <= 14 * 3600);
 
-	value->data[0].v_int64 = time;
+	value->data[0].v_double = time;
 	value->data[1].v_int = offset;
 }
 
@@ -269,7 +299,7 @@ tracker_date_time_set_from_string (GValue      *value,
                                    const gchar *date_time_string,
                                    GError     **error)
 {
-	gint64 time;
+	gdouble time;
 	gint offset;
 	GError *new_error = NULL;
 
@@ -286,13 +316,13 @@ tracker_date_time_set_from_string (GValue      *value,
 	tracker_date_time_set (value, time, offset);
 }
 
-gint64
+gdouble
 tracker_date_time_get_time (const GValue *value)
 {
 	g_return_val_if_fail (G_VALUE_HOLDS (value, TRACKER_TYPE_DATE_TIME), 0);
 
 	/* UTC timestamp */
-	return value->data[0].v_int64;
+	return value->data[0].v_double;
 }
 
 gint
@@ -307,23 +337,23 @@ tracker_date_time_get_offset (const GValue *value)
 gint
 tracker_date_time_get_local_date (const GValue *value)
 {
-	gint64 local_timestamp;
+	gdouble local_timestamp;
 
 	g_return_val_if_fail (G_VALUE_HOLDS (value, TRACKER_TYPE_DATE_TIME), 0);
 
 	/* return number of days since epoch */
 	local_timestamp = tracker_date_time_get_time (value) + tracker_date_time_get_offset (value);
-	return local_timestamp / 3600 / 24;
+	return (gint) (local_timestamp / 3600 / 24);
 }
 
 gint
 tracker_date_time_get_local_time (const GValue *value)
 {
-	gint64 local_timestamp;
+	gdouble local_timestamp;
 
 	g_return_val_if_fail (G_VALUE_HOLDS (value, TRACKER_TYPE_DATE_TIME), 0);
 
 	/* return local time of day */
 	local_timestamp = tracker_date_time_get_time (value) + tracker_date_time_get_offset (value);
-	return local_timestamp % (24 * 3600);
+	return (int) local_timestamp % (24 * 3600);
 }

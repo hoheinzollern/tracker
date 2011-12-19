@@ -1,6 +1,4 @@
 include $(top_srcdir)/Makefile.decl
 
-EXTRA_DIST =                                           \
-	posix.vapi                                     \
-	glib-2.0-fixes.vapi
-
+EXTRA_DIST = \
+	gio-2.0.vapi

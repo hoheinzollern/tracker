@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: tracker\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=tracker&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2011-10-21 14:44+0000\n"
-"PO-Revision-Date: 2011-10-22 20:43+0100\n"
+"POT-Creation-Date: 2011-12-08 14:01+0000\n"
+"PO-Revision-Date: 2011-12-08 21:27+0100\n"
 "Last-Translator: Matej Urbančič <mateju@svn.gnome.org>\n"
 "Language-Team: Slovenian GNOME Translation Team <gnome-si@googlegroups.com>\n"
 "Language: \n"
@@ -23,49 +23,6 @@ msgstr ""
 "X-Poedit-Country: SLOVENIA\n"
 "X-Poedit-Language: Slovenian\n"
 "X-Poedit-SourceCharset: utf-8\n"
-
-#: ../data/miners/tracker-miner-applications.desktop.in.in.h:1
-#: ../src/tracker-needle/tracker-view.vala:331
-#: ../src/tracker-search-bar/tracker-results-window.c:722
-msgid "Applications"
-msgstr "Programi"
-
-#: ../data/miners/tracker-miner-applications.desktop.in.in.h:2
-msgid "Applications data miner"
-msgstr "Podatkovno rudarjenje programov"
-
-#: ../data/miners/tracker-miner-evolution.desktop.in.in.h:1
-#: ../src/tracker-utils/tracker-search.c:344
-msgid "Emails"
-msgstr "Elektronska pošta"
-
-#: ../data/miners/tracker-miner-evolution.desktop.in.in.h:2
-msgid "Evolution Email miner"
-msgstr "Podatkovno rudarjenje elektronske pošte Evolution"
-
-#: ../data/miners/tracker-miner-files.desktop.in.in.h:1
-msgid "File System"
-msgstr "Datotečni sistem"
-
-#: ../data/miners/tracker-miner-files.desktop.in.in.h:2
-msgid "File system data miner"
-msgstr "Podatkovno rudarjenje datotečnega sistema"
-
-#: ../data/miners/tracker-miner-flickr.desktop.in.in.h:1
-msgid "Flickr"
-msgstr "Flickr"
-
-#: ../data/miners/tracker-miner-flickr.desktop.in.in.h:2
-msgid "Index your Flickr photo albums"
-msgstr "Pripravi kazalo iz vaših albumov fotografij Flickr"
-
-#: ../data/miners/tracker-miner-rss.desktop.in.in.h:1
-msgid "Fetch RSS/ATOM Feeds"
-msgstr "Pridobi vire RSS/ATOM"
-
-#: ../data/miners/tracker-miner-rss.desktop.in.in.h:2
-msgid "RSS/ATOM Feeds"
-msgstr "Viri RSS/ATOM"
 
 #: ../data/gschemas/org.freedesktop.Tracker.DB.gschema.xml.in.h:1
 msgid "Location of journal pieces"
@@ -160,8 +117,8 @@ msgid "Simplify the words to their root to provide more results. E.g. 'shelves' 
 msgstr "Poenostavi besede na njihov koren za zagotavljanje več rezultatov. Na primer 'polica' in 'police' na 'polic'"
 
 #: ../data/gschemas/org.freedesktop.Tracker.FTS.gschema.xml.in.h:12
-msgid "Translated accented characters to the equivalent unaccented. E.g. 'Idéa' to 'Idea' for improved matching."
-msgstr "Prevede znake z naglasom v nenaglašene. Na primer 'Idéa' v 'Idea' za izboljšano ujemanje."
+msgid "Translate accented characters to the equivalent unaccented. E.g. 'Idéa' to 'Idea' for improved matching."
+msgstr "Prevede znake z naglasom v znake brez naglasa. Na primer 'védenje' v 'vedenje' za izboljšano ujemanje."
 
 #: ../data/gschemas/org.freedesktop.Tracker.FTS.gschema.xml.in.h:13
 msgid "Words with less characters than this will be ignored by the indexer."
@@ -299,6 +256,57 @@ msgstr "Prag v dneh po katerih bodo datoteko z odstranljivih naprav odstranjene 
 msgid "Throttle"
 msgstr "Omejitev hitrosti"
 
+#: ../data/miners/tracker-miner-userguides.desktop.in.in.h:1
+msgid "Userguide data miner"
+msgstr "Podatkovno rudarjenje uporabniških vodnikov"
+
+#: ../data/miners/tracker-miner-userguides.desktop.in.in.h:2
+msgid "Userguides"
+msgstr "Uporabniški vodniki"
+
+#: ../data/miners/tracker-miner-applications.desktop.in.in.h:1
+#: ../src/tracker-needle/tracker-view.vala:331
+#: ../src/tracker-search-bar/tracker-results-window.c:717
+msgid "Applications"
+msgstr "Programi"
+
+#: ../data/miners/tracker-miner-applications.desktop.in.in.h:2
+msgid "Applications data miner"
+msgstr "Podatkovno rudarjenje programov"
+
+#: ../data/miners/tracker-miner-evolution.desktop.in.in.h:1
+#: ../src/tracker-utils/tracker-search.c:344
+msgid "Emails"
+msgstr "Elektronska pošta"
+
+#: ../data/miners/tracker-miner-evolution.desktop.in.in.h:2
+msgid "Evolution Email miner"
+msgstr "Podatkovno rudarjenje elektronske pošte Evolution"
+
+#: ../data/miners/tracker-miner-files.desktop.in.in.h:1
+msgid "File System"
+msgstr "Datotečni sistem"
+
+#: ../data/miners/tracker-miner-files.desktop.in.in.h:2
+msgid "File system data miner"
+msgstr "Podatkovno rudarjenje datotečnega sistema"
+
+#: ../data/miners/tracker-miner-flickr.desktop.in.in.h:1
+msgid "Flickr"
+msgstr "Flickr"
+
+#: ../data/miners/tracker-miner-flickr.desktop.in.in.h:2
+msgid "Index your Flickr photo albums"
+msgstr "Pripravi kazalo iz vaših albumov fotografij Flickr"
+
+#: ../data/miners/tracker-miner-rss.desktop.in.in.h:1
+msgid "Fetch RSS/ATOM Feeds"
+msgstr "Pridobi vire RSS/ATOM"
+
+#: ../data/miners/tracker-miner-rss.desktop.in.in.h:2
+msgid "RSS/ATOM Feeds"
+msgstr "Viri RSS/ATOM"
+
 #: ../data/tracker-miner-flickr.desktop.in.in.h:1
 msgid "Processes images and albums on Flickr"
 msgstr "Obdela slike in albume na Flickr"
@@ -338,37 +346,6 @@ msgstr "Vse objave"
 #: ../examples/rss-reader/rss_viewer.ui.h:2
 msgid "By usage"
 msgstr "Po uporabi"
-
-#: ../src/plugins/nautilus/tracker-tags-view.c:241
-#: ../src/tracker-needle/tracker-tags-view.vala:135
-msgid "No error was given"
-msgstr "Napaka ni bila podana"
-
-#: ../src/plugins/nautilus/tracker-tags-view.c:1020
-#: ../src/tracker-needle/tracker-tags-view.vala:264
-#, c-format
-msgid "_Set the tags you want to associate with the %d selected item:"
-msgid_plural "_Set the tags you want to associate with the %d selected items:"
-msgstr[0] "_Nastavi oznake za povezavo z %d izbranimi predmeti:"
-msgstr[1] "_Nastavi oznake za povezavo z %d izbranim predmetom:"
-msgstr[2] "_Nastavi oznake za povezavo z %d izbranima predmetoma:"
-msgstr[3] "_Nastavi oznake za povezavo s %d izbranimi predmeti:"
-
-#. Create dialog and embed vbox.
-#: ../src/plugins/nautilus/tracker-tags-extension.c:111
-#: ../src/plugins/nautilus/tracker-tags-extension.c:185
-#: ../src/tracker-needle/tracker-view.vala:538
-#: ../src/tracker-search-bar/tracker-results-window.c:719
-msgid "Tags"
-msgstr "Oznake"
-
-#: ../src/plugins/nautilus/tracker-tags-extension.c:158
-msgid "Tags..."
-msgstr "Oznake ..."
-
-#: ../src/plugins/nautilus/tracker-tags-extension.c:159
-msgid "Tag one or more files"
-msgstr "Označi eno ali več datotek"
 
 #: ../src/libtracker-common/tracker-utils.c:90
 msgid "unknown time"
@@ -451,48 +428,29 @@ msgstr "Piškotek za nadaljevanje podatkovnega rudarjenja v premoru ni prepoznan
 msgid "Data store is not available"
 msgstr "Shramba podatkov ni na voljo"
 
-#: ../src/plugins/evolution/org-freedesktop-Tracker-evolution-plugin.eplug.xml.h:1
-msgid "Push data to Tracker to make it queryable."
-msgstr "Potisk podatkov v Tracker omogoči poizvedbo po podatkih. "
+#: ../src/miners/fs/tracker-main.c:102
+#: ../src/miners/rss/tracker-main.c:39
+#: ../src/tracker-writeback/tracker-main.c:55
+msgid "Logging, 0 = errors only, 1 = minimal, 2 = detailed and 3 = debug (default=0)"
+msgstr "Beleženje, 0 = samo napake, 1 = najmanjše, 2 = podrobno in 3 = razhroščevanje (privzeto=0)"
 
-#: ../src/plugins/evolution/org-freedesktop-Tracker-evolution-plugin.eplug.xml.h:2
-msgid "Tracker"
-msgstr "Tracker"
+#: ../src/miners/fs/tracker-main.c:107
+msgid "Initial sleep time in seconds, 0->1000 (default=15)"
+msgstr "Začetno stanje pripravljenosti v sekundah, 0->1000 (privzeto=15)"
 
-#: ../src/plugins/evolution/tracker-evolution-plugin.c:2554
-#: ../src/tracker-control/tracker-control-status.c:52
-msgid "Processing…"
-msgstr "Obdelovanje ..."
+#: ../src/miners/fs/tracker-main.c:112
+msgid "Runs until all configured locations are indexed and then exits"
+msgstr "Izvaja se dokler niso pripravljena kazala vseh nastavljenih mest in se nato konča"
 
-#: ../src/tracker-explorer/tracker-explorer.ui.h:1
-#: ../src/tracker-utils/tracker-sparql.c:404
-#: ../src/tracker-utils/tracker-sparql.c:523
-msgid "Properties"
-msgstr "Lastnosti"
+#: ../src/miners/fs/tracker-main.c:116
+msgid "Checks if FILE is eligible for being mined based on configuration"
+msgstr "Preveri, če je DATOTEKA primerna za podatkovno rudarjenje na podlagi nastavitev"
 
-#: ../src/tracker-explorer/tracker-explorer.ui.h:2
-#: ../src/tracker-needle/tracker-needle.ui.h:9
-msgid "_Search:"
-msgstr "_Poišči:"
-
-#: ../src/tracker-explorer/tracker-explorer.ui.h:3
-msgid "_URN:"
-msgstr "_URN:"
-
-#: ../src/tracker-extract/tracker-main.c:87
-#: ../src/tracker-store/tracker-main.vala:48
-msgid "Logging, 0 = errors only, 1 = minimal, 2 = detailed and 3 = debug (default = 0)"
-msgstr "Beleženje, 0 = samo napake, 1 = najmanjše, 2 = podrobno in 3 = razhroščevanje (privzeto = 0)"
-
-#: ../src/tracker-extract/tracker-main.c:92
-msgid "File to extract metadata for"
-msgstr "Datoteka za razširitev metapodatkov"
-
-#: ../src/tracker-extract/tracker-main.c:93
-#: ../src/miners/fs/tracker-main.c:94
+#: ../src/miners/fs/tracker-main.c:117
 #: ../src/tracker-control/tracker-control-general.c:107
 #: ../src/tracker-control/tracker-control-general.c:110
 #: ../src/tracker-control/tracker-control-miners.c:60
+#: ../src/tracker-extract/tracker-main.c:93
 #: ../src/tracker-utils/tracker-import.c:54
 #: ../src/tracker-utils/tracker-import.c:55
 #: ../src/tracker-utils/tracker-info.c:62
@@ -501,164 +459,115 @@ msgstr "Datoteka za razširitev metapodatkov"
 msgid "FILE"
 msgstr "DATOTEKA"
 
-#: ../src/tracker-extract/tracker-main.c:96
-msgid "MIME type for file (if not provided, this will be guessed)"
-msgstr "Vrsta MIME za datoteko (če ni navedena, bo uganjena) "
+#: ../src/miners/fs/tracker-main.c:120
+msgid "Disable miners started as part of this process, options include: '"
+msgstr "Onemogoči podatkovno rudarjenje, zagnano kot del tega opravila, z možnostmi: '"
 
-#: ../src/tracker-extract/tracker-main.c:97
-#: ../src/tracker-control/tracker-control-miners.c:57
-msgid "MIME"
-msgstr "MIME"
-
-#: ../src/tracker-extract/tracker-main.c:102
-#: ../src/tracker-writeback/tracker-main.c:62
-msgid "Disable shutting down after 30 seconds of inactivity"
-msgstr "Onemogoči izklop po 30 sekundah nedejavnosti"
-
-#: ../src/tracker-extract/tracker-main.c:106
-msgid "Force internal extractors over 3rd parties like libstreamanalyzer"
-msgstr "Vsili notranje razširjevalnike pred zunanjimi kot je libstreamanalyzer "
-
-#: ../src/tracker-extract/tracker-main.c:110
-msgid "Force a module to be used for extraction (e.g. \"foo\" for \"foo.so\")"
-msgstr "Prisili modul uporabljen za razširitev (na primer \"foo\" za \"foo.so\")"
-
-#: ../src/tracker-extract/tracker-main.c:111
-msgid "MODULE"
-msgstr "MODUL"
+#: ../src/miners/fs/tracker-main.c:127
+#: ../src/tracker-control/tracker-control-miners.c:75
+msgid "MINER"
+msgstr "PODATKOVNO RUDARJENJE"
 
 #. Daemon options
+#: ../src/miners/fs/tracker-main.c:130
 #: ../src/tracker-extract/tracker-main.c:114
-#: ../src/miners/fs/tracker-main.c:97
 #: ../src/tracker-store/tracker-main.vala:47
 #: ../src/tracker-writeback/tracker-main.c:51
 msgid "Displays version information"
 msgstr "Pokaže podrobnosti različice"
 
-#. Translators: this message will appear immediately after the
-#. usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>
-#: ../src/tracker-extract/tracker-main.c:333
-msgid "- Extract file meta data"
-msgstr "- Razširi metapodatke datoteke"
-
-#: ../src/tracker-extract/tracker-main.c:342
-msgid "Filename and mime type must be provided together"
-msgstr "Ime datoteke in vrsta mime morata biti navedeni skupaj"
-
-#: ../src/tracker-extract/tracker-main.c:356
-msgid "Options --force-internal-extractors and --force-module can't be used together"
-msgstr "Možnosti --force-internal-extractors in --force-module ni mogoče uporabiti skupaj"
-
-#: ../src/miners/fs/tracker-main.c:79
-#: ../src/miners/rss/tracker-main.c:39
-#: ../src/tracker-writeback/tracker-main.c:55
-msgid "Logging, 0 = errors only, 1 = minimal, 2 = detailed and 3 = debug (default=0)"
-msgstr "Beleženje, 0 = samo napake, 1 = najmanjše, 2 = podrobno in 3 = razhroščevanje (privzeto=0)"
-
-#: ../src/miners/fs/tracker-main.c:84
-msgid "Initial sleep time in seconds, 0->1000 (default=15)"
-msgstr "Začetno stanje pripravljenosti v sekundah, 0->1000 (privzeto=15)"
-
-#: ../src/miners/fs/tracker-main.c:89
-msgid "Runs until all configured locations are indexed and then exits"
-msgstr "Izvaja se dokler niso pripravljena kazala vseh nastavljenih mest in se nato konča"
-
-#: ../src/miners/fs/tracker-main.c:93
-msgid "Checks if FILE is eligible for being mined based on configuration"
-msgstr "Preveri, če je DATOTEKA primerna za podatkovno rudarjenje na podlagi nastavitev"
-
-#: ../src/miners/fs/tracker-main.c:464
+#: ../src/miners/fs/tracker-main.c:626
 #, c-format
 msgid "Data object '%s' currently exists"
 msgstr "Podatkovni predmet '%s' trenutno obstaja"
 
-#: ../src/miners/fs/tracker-main.c:465
+#: ../src/miners/fs/tracker-main.c:627
 #, c-format
 msgid "Data object '%s' currently does not exist"
 msgstr "Podatkovni predmet '%s' trenutno ne obstaja"
 
-#: ../src/miners/fs/tracker-main.c:480
+#: ../src/miners/fs/tracker-main.c:642
 msgid "Directory is eligible to be mined (based on rules)"
 msgstr "Mapa je primerna za podatkovno rudarjenje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:481
+#: ../src/miners/fs/tracker-main.c:643
 msgid "Directory is NOT eligible to be mined (based on rules)"
 msgstr "Mapa NI primerna za kopanje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:501
+#: ../src/miners/fs/tracker-main.c:663
 msgid "Directory is eligible to be mined (based on contents)"
 msgstr "Mapa je primerna za podatkovno rudarjenje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:502
+#: ../src/miners/fs/tracker-main.c:664
 msgid "Directory is NOT eligible to be mined (based on contents)"
 msgstr "Mapa NI primerna za podatkovno rudarjenje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:549
+#: ../src/miners/fs/tracker-main.c:711
 msgid "Directory is eligible to be monitored (based on config)"
 msgstr "Mapa je primerna za nadziranje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:550
+#: ../src/miners/fs/tracker-main.c:712
 msgid "Directory is NOT eligible to be monitored (based on config)"
 msgstr "Mapa NI primerna za nadziranje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:554
+#: ../src/miners/fs/tracker-main.c:716
 msgid "File is eligible to be monitored (based on config)"
 msgstr "Datoteka je primerna za nadziranje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:555
+#: ../src/miners/fs/tracker-main.c:717
 msgid "File is NOT eligible to be monitored (based on config)"
 msgstr "Datoteka NI primerna za nadziranje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:559
+#: ../src/miners/fs/tracker-main.c:721
 msgid "File or Directory is eligible to be monitored (based on config)"
 msgstr "Datoteka ali mapa je primerna za nadziranje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:560
+#: ../src/miners/fs/tracker-main.c:722
 msgid "File or Directory is NOT eligible to be monitored (based on config)"
 msgstr "Datoteka ali mapa NI primerna za nadziranje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:575
+#: ../src/miners/fs/tracker-main.c:737
 msgid "File is eligible to be mined (based on rules)"
 msgstr "Datoteka je primerna za podatkovno rudarjenje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:576
+#: ../src/miners/fs/tracker-main.c:738
 msgid "File is NOT eligible to be mined (based on rules)"
 msgstr "Datoteka NI primerna za podatkovno rudarjenje (na podlagi pravil)"
 
-#: ../src/miners/fs/tracker-main.c:585
+#: ../src/miners/fs/tracker-main.c:747
 msgid "Would be indexed"
 msgstr "Bi bilo pripravljeno kazalo"
 
-#: ../src/miners/fs/tracker-main.c:586
-#: ../src/miners/fs/tracker-main.c:588
+#: ../src/miners/fs/tracker-main.c:748
+#: ../src/miners/fs/tracker-main.c:750
 msgid "Yes"
 msgstr "Da"
 
-#: ../src/miners/fs/tracker-main.c:586
-#: ../src/miners/fs/tracker-main.c:588
+#: ../src/miners/fs/tracker-main.c:748
+#: ../src/miners/fs/tracker-main.c:750
 msgid "No"
 msgstr "Ne"
 
-#: ../src/miners/fs/tracker-main.c:587
+#: ../src/miners/fs/tracker-main.c:749
 msgid "Would be monitored"
 msgstr "Bi bilo nadzirano"
 
 #. Translators: this messagge will apper immediately after the
 #. * usage string - Usage: COMMAND <THIS_MESSAGE>
 #.
-#: ../src/miners/fs/tracker-main.c:706
+#: ../src/miners/fs/tracker-main.c:872
 msgid "- start the tracker indexer"
 msgstr "- začne pripravljalnik kazala tracker"
 
-#: ../src/miners/fs/tracker-miner-files.c:1321
+#: ../src/miners/fs/tracker-miner-files.c:1373
 msgid "Low battery"
 msgstr "Nizka napetost baterije"
 
-#: ../src/miners/fs/tracker-miner-files.c:1444
+#: ../src/miners/fs/tracker-miner-files.c:1500
 msgid "Low disk space"
 msgstr "Malo prostora na disku"
 
-#: ../src/miners/fs/tracker-miner-files.c:2172
+#: ../src/miners/fs/tracker-miner-files.c:2258
 msgid "Extractor error, performing failsafe embedded metadata extraction"
 msgstr "Napaka razširjevalnika. Izvajanje pred napakami varne izvleke metapodatkov"
 
@@ -677,96 +586,85 @@ msgstr "Naslov za uporabo (mora se uporabljati z --add-feed)"
 #. Translators: this messagge will apper immediately after the
 #. * usage string - Usage: COMMAND <THIS_MESSAGE>
 #.
-#: ../src/miners/rss/tracker-main.c:76
+#: ../src/miners/rss/tracker-main.c:75
 msgid "- start the feeds indexer"
 msgstr "- začne pripravljalnik kazala virov"
 
-#: ../src/miners/rss/tracker-main.c:81
+#: ../src/miners/rss/tracker-main.c:80
 msgid "Adding a feed requires --add-feed and --title"
 msgstr "Dodajanje vira zahteva --add-feed in --title"
 
-#: ../src/miners/rss/tracker-main.c:115
-#: ../src/tracker-utils/tracker-import.c:115
-#: ../src/tracker-utils/tracker-info.c:360
-#: ../src/tracker-utils/tracker-search.c:1529
-#: ../src/tracker-utils/tracker-sparql.c:291
-#: ../src/tracker-utils/tracker-stats.c:92
-#: ../src/tracker-utils/tracker-tag.c:944
+#: ../src/miners/rss/tracker-main.c:114
+#: ../src/tracker-utils/tracker-import.c:111
+#: ../src/tracker-utils/tracker-info.c:356
+#: ../src/tracker-utils/tracker-search.c:1525
+#: ../src/tracker-utils/tracker-sparql.c:287
+#: ../src/tracker-utils/tracker-stats.c:88
+#: ../src/tracker-utils/tracker-tag.c:940
 msgid "Could not establish a connection to Tracker"
 msgstr "Povezave s Trackerjem ni mogoče vzpostaviti"
 
-#: ../src/miners/rss/tracker-main.c:116
-#: ../src/tracker-utils/tracker-import.c:116
-#: ../src/tracker-utils/tracker-info.c:361
-#: ../src/tracker-utils/tracker-search.c:1530
-#: ../src/tracker-utils/tracker-sparql.c:292
-#: ../src/tracker-utils/tracker-stats.c:93
-#: ../src/tracker-utils/tracker-tag.c:945
+#: ../src/miners/rss/tracker-main.c:115
+#: ../src/tracker-utils/tracker-import.c:112
+#: ../src/tracker-utils/tracker-info.c:357
+#: ../src/tracker-utils/tracker-search.c:1526
+#: ../src/tracker-utils/tracker-sparql.c:288
+#: ../src/tracker-utils/tracker-stats.c:89
+#: ../src/tracker-utils/tracker-tag.c:941
 msgid "No error given"
 msgstr "Ni dane napake"
 
-#: ../src/miners/rss/tracker-main.c:141
+#: ../src/miners/rss/tracker-main.c:140
 msgid "Could not add feed"
 msgstr "Ni mogoče dodati vira"
 
-#: ../src/tracker-preferences/tracker-preferences.desktop.in.in.h:1
-msgid "Configure file indexing with Tracker"
-msgstr "Nastavitev priprave kazala datotek"
+#: ../src/plugins/evolution/org-freedesktop-Tracker-evolution-plugin.eplug.xml.h:1
+msgid "Push data to Tracker to make it queryable."
+msgstr "Potisk podatkov v Tracker omogoči poizvedbo po podatkih. "
 
-#: ../src/tracker-preferences/tracker-preferences.desktop.in.in.h:2
-msgid "Search and Indexing"
-msgstr "Iskanje in priprava kazala"
+#: ../src/plugins/evolution/org-freedesktop-Tracker-evolution-plugin.eplug.xml.h:2
+msgid "Tracker"
+msgstr "Tracker"
 
-#: ../src/tracker-preferences/tracker-preferences.vala:146
-#: ../src/tracker-preferences/tracker-preferences.vala:147
-#: ../src/tracker-preferences/tracker-preferences.vala:148
-msgid "Directory"
-msgstr "Mapa"
+#: ../src/plugins/evolution/tracker-evolution-plugin.c:2559
+#: ../src/tracker-control/tracker-control-status.c:52
+msgid "Processing…"
+msgstr "Obdelovanje ..."
 
-#: ../src/tracker-preferences/tracker-preferences.vala:149
-#: ../src/tracker-needle/tracker-view.vala:185
-#: ../src/tracker-needle/tracker-stats.vala:103
-msgid "File"
-msgid_plural "Files"
-msgstr[0] "Datoteke"
-msgstr[1] "Datoteka"
-msgstr[2] "Datoteki"
-msgstr[3] "Datoteke"
+#. Create dialog and embed vbox.
+#: ../src/plugins/nautilus/tracker-tags-extension.c:111
+#: ../src/plugins/nautilus/tracker-tags-extension.c:185
+#: ../src/tracker-needle/tracker-view.vala:538
+#: ../src/tracker-search-bar/tracker-results-window.c:714
+msgid "Tags"
+msgstr "Oznake"
 
-#: ../src/tracker-preferences/tracker-preferences.vala:329
-#: ../src/tracker-preferences/tracker-preferences.vala:338
-msgid "Disabled"
-msgstr "Onemogočeno"
+#: ../src/plugins/nautilus/tracker-tags-extension.c:158
+msgid "Tags..."
+msgstr "Oznake ..."
 
-#: ../src/tracker-preferences/tracker-preferences.vala:332
+#: ../src/plugins/nautilus/tracker-tags-extension.c:159
+msgid "Tag one or more files"
+msgstr "Označi eno ali več datotek"
+
+#: ../src/plugins/nautilus/tracker-tags-view.c:241
+#: ../src/tracker-needle/tracker-tags-view.vala:163
+msgid "No error was given"
+msgstr "Napaka ni bila podana"
+
+#: ../src/plugins/nautilus/tracker-tags-view.c:1020
+#: ../src/tracker-needle/tracker-tags-view.vala:378
 #, c-format
-msgid "%d%%"
-msgstr "%d%%"
+msgid "_Set the tags you want to associate with the %d selected item:"
+msgid_plural "_Set the tags you want to associate with the %d selected items:"
+msgstr[0] "_Nastavi oznake za povezavo z %d izbranimi predmeti:"
+msgstr[1] "_Nastavi oznake za povezavo z %d izbranim predmetom:"
+msgstr[2] "_Nastavi oznake za povezavo z %d izbranima predmetoma:"
+msgstr[3] "_Nastavi oznake za povezavo s %d izbranimi predmeti:"
 
-#: ../src/tracker-preferences/tracker-preferences.vala:341
-#, c-format
-msgid "%d"
-msgstr "%d"
-
-#: ../src/tracker-preferences/tracker-preferences.vala:485
-msgid "Enter value"
-msgstr "Vnesite vrednost"
-
-#: ../src/tracker-preferences/tracker-preferences.vala:514
-msgid "Select directory"
-msgstr "Izbor mape"
-
-#: ../src/tracker-preferences/tracker-preferences.vala:535
-msgid "That directory is already selected as a location to index"
-msgstr "Ta mapa je že izbrana kot mesto kazala"
-
-#: ../src/tracker-preferences/tracker-preferences.vala:797
-msgid "Recurse"
-msgstr "Po strukturi map"
-
-#: ../src/tracker-preferences/tracker-preferences.vala:892
-#: ../src/tracker-needle/tracker-needle.vala:647
 #: ../src/tracker-control/tracker-control.c:53
+#: ../src/tracker-needle/tracker-needle.vala:691
+#: ../src/tracker-preferences/tracker-preferences.vala:892
 #: ../src/tracker-utils/tracker-import.c:50
 #: ../src/tracker-utils/tracker-info.c:50
 #: ../src/tracker-utils/tracker-search.c:144
@@ -776,9 +674,897 @@ msgstr "Po strukturi map"
 msgid "Print version"
 msgstr "Izpiši različico"
 
-#: ../src/tracker-preferences/tracker-preferences.vala:898
-msgid "Desktop Search preferences"
-msgstr "Možnosti namiznega iskanja"
+#. Translators: this messagge will apper immediately after the
+#. usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>
+#: ../src/tracker-control/tracker-control.c:73
+msgid " - Manage Tracker processes and data"
+msgstr "- Upravljanje opravil in podatkov programa Tracker"
+
+#: ../src/tracker-control/tracker-control.c:97
+msgid "General and Status options cannot be used together"
+msgstr "Splošnih možnosti in možnosti stanja ni mogoče uporabljati skupaj"
+
+#: ../src/tracker-control/tracker-control.c:103
+msgid "General and Miners options cannot be used together"
+msgstr "Splošnih možnosti in možnosti podatkovnega rudarjenja ni mogoče uporabljati skupaj"
+
+#: ../src/tracker-control/tracker-control.c:114
+msgid "Status and Miners options cannot be used together"
+msgstr "Možnosti stanja in možnosti podatkovnega rudarjenja ni mogoče uporabljati skupaj"
+
+#: ../src/tracker-control/tracker-control.c:131
+msgid "Unrecognized options"
+msgstr "Nepoznane možnosti"
+
+#: ../src/tracker-control/tracker-control-general.c:80
+msgid "List all Tracker processes"
+msgstr "Izpiši vsa opravila Tracker"
+
+#: ../src/tracker-control/tracker-control-general.c:82
+msgid "Use SIGKILL to stop all matching processes, either \"store\", \"miners\" or \"all\" may be used, no parameter equals \"all\""
+msgstr "Uporabi SIGKILL za končanje vseh skladajočih opravil, mogoče je uporabiti parametre \"store\", \"miners\" ali \"all\", nedoločen parameter pomeni \"all\""
+
+#: ../src/tracker-control/tracker-control-general.c:83
+#: ../src/tracker-control/tracker-control-general.c:86
+msgid "APPS"
+msgstr "Izbrani programi"
+
+#: ../src/tracker-control/tracker-control-general.c:85
+msgid "Use SIGTERM to stop all matching processes, either \"store\", \"miners\" or \"all\" may be used, no parameter equals \"all\""
+msgstr "Uporabi SIGKILL za zaustavitev vseh skladajočih opravil, mogoče je uporabiti parametre \"store\", \"miners\" ali \"all\", nedoločen parameter pomeni \"all\""
+
+#: ../src/tracker-control/tracker-control-general.c:88
+msgid "Kill all Tracker processes and remove all databases"
+msgstr "To bo uničilo vsa opravila programa Tracker in odstranilo vse podatkovne zbirke"
+
+#: ../src/tracker-control/tracker-control-general.c:91
+msgid "Same as --hard-reset but the backup & journal are restored after restart"
+msgstr "Enako kot --hard-reset toda varnostna kopija in dnevnik sta po ponovnem zagonu obnovljena"
+
+#: ../src/tracker-control/tracker-control-general.c:94
+msgid "Remove all configuration files so they are re-generated on next start"
+msgstr "Odstrani vse nastavitvene datoteke, tako, da so ponovno ustvarjene ob naslednjem začetku"
+
+#: ../src/tracker-control/tracker-control-general.c:97
+msgid "Sets the logging verbosity to LEVEL ('debug', 'detailed', 'minimal', 'errors') for all processes"
+msgstr "Določa obsežnost beleženja na RAVEN ('debug' - razhroščevalna, 'detailed' - podrobna, 'minimal' - minimalna, 'errors' - le napake) za vsa opravila"
+
+#: ../src/tracker-control/tracker-control-general.c:98
+msgid "LEVEL"
+msgstr "RAVEN"
+
+#: ../src/tracker-control/tracker-control-general.c:100
+msgid "Show logging values in terms of log verbosity for each process"
+msgstr "Pokaži vrednosti beleženja glede na obsežnost beleženja za vsako opravilo"
+
+#: ../src/tracker-control/tracker-control-general.c:103
+msgid "Starts miners (which indirectly starts tracker-store too)"
+msgstr "Začne podatkovno rudarjenje (kar posredno začne tudi tracker-shrambo)"
+
+#: ../src/tracker-control/tracker-control-general.c:106
+msgid "Backup databases to the file provided"
+msgstr "Ustvari varnostno kopijo podatkovnih zbirk v izbrano datoteko"
+
+#: ../src/tracker-control/tracker-control-general.c:109
+msgid "Restore databases from the file provided"
+msgstr "Obnovi podatkovne zbirke iz izbrane datoteke"
+
+#: ../src/tracker-control/tracker-control-general.c:131
+msgid "Could not open /proc"
+msgstr "Ni mogoče odpreti /proc"
+
+#: ../src/tracker-control/tracker-control-general.c:132
+#: ../src/tracker-control/tracker-control-general.c:691
+#: ../src/tracker-control/tracker-control-general.c:731
+#: ../src/tracker-control/tracker-control-general.c:752
+msgid "no error given"
+msgstr "napaka ni podana"
+
+#: ../src/tracker-control/tracker-control-general.c:324
+#, c-format
+msgid "Could not get GSettings for miners, manager could not be created, %s"
+msgstr "Ni mogoče dobiti podatkov GSettings za podatkovno rudarjenje, saj upravljalnika ni mogoče ustvariti, %s"
+
+#: ../src/tracker-control/tracker-control-general.c:588
+msgid "You can not use the --kill and --terminate arguments together"
+msgstr "Argumentov --kill in --terminate ni mogoče uporabiti skupaj"
+
+#: ../src/tracker-control/tracker-control-general.c:594
+msgid "You can not use the --terminate with --hard-reset or --soft-reset, --kill is implied"
+msgstr "Argumenta --terminate ni mogoče uporabiti s --hard-reset, --kill je predpostavljen"
+
+#: ../src/tracker-control/tracker-control-general.c:600
+msgid "You can not use the --hard-reset and --soft-reset arguments together"
+msgstr "Argumentov --hard-reset in --soft-reset ni mogoče uporabiti skupaj"
+
+#: ../src/tracker-control/tracker-control-general.c:606
+msgid "You can not use the --get-logging and --set-logging arguments together"
+msgstr "Argumentov --get-logging in --set-logging ni mogoče uporabiti skupaj"
+
+#: ../src/tracker-control/tracker-control-general.c:621
+msgid "Invalid log verbosity, try 'debug', 'detailed', 'minimal' or 'errors'"
+msgstr "Neveljavna obsežnost beleženja, poskusite z 'debug' (razhroščevalna), 'detailed' (podrobna), 'minimal' (minimalna) ali 'errors' (napake)"
+
+#: ../src/tracker-control/tracker-control-general.c:688
+#, c-format
+msgid "Could not open '%s'"
+msgstr "Ni mogoče odpreti '%s'"
+
+#: ../src/tracker-control/tracker-control-general.c:713
+#, c-format
+msgid "Found process ID %d for '%s'"
+msgstr "Najden je bil ID opravila %d za '%s'"
+
+#: ../src/tracker-control/tracker-control-general.c:728
+#, c-format
+msgid "Could not terminate process %d"
+msgstr "Opravila %d ni mogoče končati"
+
+#: ../src/tracker-control/tracker-control-general.c:734
+#, c-format
+msgid "Terminated process %d"
+msgstr "Opravilo %d je končano"
+
+#: ../src/tracker-control/tracker-control-general.c:749
+#, c-format
+msgid "Could not kill process %d"
+msgstr "Opravila %d ni mogoče uničiti"
+
+#: ../src/tracker-control/tracker-control-general.c:755
+#, c-format
+msgid "Killed process %d"
+msgstr "Opravilo %d je bilo uničeno"
+
+#: ../src/tracker-control/tracker-control-general.c:883
+msgid "Removing configuration files…"
+msgstr "Odstranjevanje namestitvenih datotek ..."
+
+#: ../src/tracker-control/tracker-control-general.c:891
+msgid "Resetting existing configuration…"
+msgstr "Poteka čiščenje obstoječih nastavitev ..."
+
+#: ../src/tracker-control/tracker-control-general.c:939
+#: ../src/tracker-control/tracker-control-general.c:981
+msgid "Components"
+msgstr "Komponente"
+
+#: ../src/tracker-control/tracker-control-general.c:945
+#: ../src/tracker-control/tracker-control-general.c:987
+#: ../src/tracker-control/tracker-control-miners.c:391
+#: ../src/tracker-control/tracker-control-status.c:567
+msgid "Miners"
+msgstr "Podatkovno rudarjenje"
+
+#: ../src/tracker-control/tracker-control-general.c:946
+#: ../src/tracker-control/tracker-control-general.c:988
+msgid "Only those with config listed"
+msgstr "Samo tisti z izpisano prilagoditvijo"
+
+#: ../src/tracker-control/tracker-control-general.c:964
+#, c-format
+msgid "Setting log verbosity for all components to '%s'…"
+msgstr "Določanje obsežnosti beleženja za vse komponente na '%s' …"
+
+#: ../src/tracker-control/tracker-control-general.c:1004
+msgid "Waiting one second before starting miners…"
+msgstr "Čakanje eno sekundo pred začetkom podatkovnega rudarjenja ..."
+
+#: ../src/tracker-control/tracker-control-general.c:1010
+msgid "Starting miners…"
+msgstr "Začenjanje podatkovnega rudarjenja ..."
+
+#: ../src/tracker-control/tracker-control-general.c:1016
+#, c-format
+msgid "Could not start miners, manager could not be created, %s"
+msgstr "Podatkovnega rudarjenja ni mogoče začeti, upravljalnika ni bilo mogoče ustvariti, %s"
+
+#: ../src/tracker-control/tracker-control-general.c:1041
+msgid "perhaps a disabled plugin?"
+msgstr "morda onemogočen vstavek?"
+
+#: ../src/tracker-control/tracker-control-general.c:1063
+msgid "Backing up database"
+msgstr "Ustvarjanje varnostne kopije podatkovne zbirke"
+
+#: ../src/tracker-control/tracker-control-general.c:1135
+msgid "Restoring database from backup"
+msgstr "Obnavljanje podatkovne zbirke iz varnostne kopije"
+
+#: ../src/tracker-control/tracker-control-general.c:1208
+msgid "General options"
+msgstr "Splošne možnosti"
+
+#: ../src/tracker-control/tracker-control-general.c:1209
+msgid "Show general options"
+msgstr "Pokaži splošne možnosti"
+
+#: ../src/tracker-control/tracker-control-miners.c:56
+msgid "Tell miners to reindex files which match the mime type supplied (for new extractors), use -m MIME1 -m MIME2"
+msgstr "Podatkovno rudarjenja naj pripravi kazalo iz vseh datotek, ki se skladajo s podano vrsto MIME (za nove razširjevalnike), uporabite -m MIME1 -m MIME2"
+
+#: ../src/tracker-control/tracker-control-miners.c:57
+#: ../src/tracker-extract/tracker-main.c:97
+msgid "MIME"
+msgstr "MIME"
+
+#: ../src/tracker-control/tracker-control-miners.c:59
+msgid "Tell miners to (re)index a given file"
+msgstr "Podatkovno rudarjenje naj (znova) pripravi kazalo dane datoteke"
+
+#: ../src/tracker-control/tracker-control-miners.c:62
+msgid "Pause a miner (you must use this with --miner)"
+msgstr "Premor podatkovnega rudarjenja (uporabljen mora biti  z --miner)"
+
+#: ../src/tracker-control/tracker-control-miners.c:63
+#: ../src/tracker-control/tracker-control-miners.c:67
+msgid "REASON"
+msgstr "VZROK"
+
+#: ../src/tracker-control/tracker-control-miners.c:66
+msgid "Pause a miner while the calling process is alive or until resumed (you must use this with --miner)"
+msgstr "Premor podatkovnega rudarjenja medtem ko je opravilo klicanja živo ali dokler ga ne nadaljujete (uporabljen mora biti  z --miner)"
+
+#: ../src/tracker-control/tracker-control-miners.c:70
+msgid "Resume a miner (you must use this with --miner)"
+msgstr "Nadaljevanje podatkovnega rudarjenja (uporabljen mora biti  z --miner)"
+
+#: ../src/tracker-control/tracker-control-miners.c:71
+msgid "COOKIE"
+msgstr "PIŠKOTEK"
+
+#: ../src/tracker-control/tracker-control-miners.c:74
+msgid "Miner to use with --resume or --pause (you can use suffixes, e.g. Files or Applications)"
+msgstr "Podatkovno rudarjenje za uporabo z --resume ali --pause (uporabite lahko pripone, na primer datoteke ali programi)"
+
+#: ../src/tracker-control/tracker-control-miners.c:78
+msgid "List all miners currently running"
+msgstr "Seznam vseh trenutno dejavnih programov za podatkovno rudarjenje"
+
+#: ../src/tracker-control/tracker-control-miners.c:82
+msgid "List all miners installed"
+msgstr "Izpis vseh nameščenih programov za podatkovno rudarjenje"
+
+#: ../src/tracker-control/tracker-control-miners.c:86
+msgid "List pause reasons"
+msgstr "Izpiši vzroke premorov"
+
+#: ../src/tracker-control/tracker-control-miners.c:111
+#, c-format
+msgid "Could not pause miner, manager could not be created, %s"
+msgstr "Ni mogoče narediti premora podatkovnega rudarjenja, upravljalnika ni bilo mogoče ustvariti: %s"
+
+#: ../src/tracker-control/tracker-control-miners.c:118
+#, c-format
+msgid "Attempting to pause miner '%s' with reason '%s'"
+msgstr "Poskus premora podatkovnega rudarjenja '%s' z razlogom '%s'"
+
+#: ../src/tracker-control/tracker-control-miners.c:126
+#: ../src/tracker-control/tracker-control-miners.c:132
+#, c-format
+msgid "Could not pause miner: %s"
+msgstr "Ni mogoče narediti premora podatkovnega rudarjenja: %s"
+
+#: ../src/tracker-control/tracker-control-miners.c:138
+#, c-format
+msgid "Cookie is %d"
+msgstr "Piškotek je %d"
+
+#: ../src/tracker-control/tracker-control-miners.c:145
+msgid "Press Ctrl+C to end pause"
+msgstr "Pritisnite Ctrl+C za končanje premora"
+
+#: ../src/tracker-control/tracker-control-miners.c:169
+#, c-format
+msgid "Could not resume miner, manager could not be created, %s"
+msgstr "Podatkovnega rudarjenja ni mogoče nadaljevati, upravljalnika ni mogoče ustvariti: %s"
+
+#: ../src/tracker-control/tracker-control-miners.c:176
+#, c-format
+msgid "Attempting to resume miner %s with cookie %d"
+msgstr "Poskus nadaljevanja podatkovnega rudarjenja %s s piškotkom %d"
+
+#: ../src/tracker-control/tracker-control-miners.c:183
+#, c-format
+msgid "Could not resume miner: %s"
+msgstr "Podatkovnega rudarjenja ni mogoče nadaljevati: %s"
+
+#: ../src/tracker-control/tracker-control-miners.c:187
+#: ../src/tracker-utils/tracker-import.c:138
+#: ../src/tracker-utils/tracker-sparql.c:567
+msgid "Done"
+msgstr "Končano"
+
+#: ../src/tracker-control/tracker-control-miners.c:203
+#, c-format
+msgid "Could not reindex mimetypes, manager could not be created, %s"
+msgstr "Iz vrst mime ni mogoče znova pripraviti kazala, upravljalnika ni mogoče ustvariti, %s"
+
+#: ../src/tracker-control/tracker-control-miners.c:213
+msgid "Could not reindex mimetypes"
+msgstr "Iz vrst mime ni mogoče znova pripraviti kazala"
+
+#: ../src/tracker-control/tracker-control-miners.c:219
+msgid "Reindexing mime types was successful"
+msgstr "Ponovna priprava kazala vrst mime je bila uspešna"
+
+#: ../src/tracker-control/tracker-control-miners.c:235
+#, c-format
+msgid "Could not (re)index file, manager could not be created, %s"
+msgstr "Ni mogoče (ponovno) pripraviti kazala datoteke, upravljalnika ni mogoče ustvariti, %s "
+
+#: ../src/tracker-control/tracker-control-miners.c:248
+msgid "Could not (re)index file"
+msgstr "Ni mogoče (znova) pripraviti kazala datoteke"
+
+#: ../src/tracker-control/tracker-control-miners.c:254
+msgid "(Re)indexing file was successful"
+msgstr "(Ponovna) priprava kazala je bila uspešna"
+
+#: ../src/tracker-control/tracker-control-miners.c:272
+#, c-format
+msgid "Could not list miners, manager could not be created, %s"
+msgstr "Ni mogoče dobiti seznama podatkovnega rudarjenja, upravljalnika ni mogoče ustvariti, %s"
+
+#: ../src/tracker-control/tracker-control-miners.c:286
+#, c-format
+msgid "Found %d miner installed"
+msgid_plural "Found %d miners installed"
+msgstr[0] "Najdenih je %d nameščenih programov za podatkovno rudarjenje"
+msgstr[1] "Najden je %d nameščen program za podatkovno rudarjenje"
+msgstr[2] "Najdena sta %d nameščena programa za podatkovno rudarjenje"
+msgstr[3] "Najdeni so %d nameščeni programi za podatkovno rudarjenje"
+
+#: ../src/tracker-control/tracker-control-miners.c:309
+#, c-format
+msgid "Found %d miner running"
+msgid_plural "Found %d miners running"
+msgstr[0] "Najdenih je %d zagnanih programov za podatkovno rudarjenje"
+msgstr[1] "Najden je %d zagnan program za podatkovno rudarjenje"
+msgstr[2] "Najdena sta %d zagnana programa za podatkovno rudarjenje"
+msgstr[3] "Najdeni so %d zagnani programi za podatkovno rudarjenje"
+
+#: ../src/tracker-control/tracker-control-miners.c:341
+#, c-format
+msgid "Could not get pause details, manager could not be created, %s"
+msgstr "Ni mogoče dobiti podrobnosti premora, upravljalnika ni bilo mogoče ustvariti, %s"
+
+#: ../src/tracker-control/tracker-control-miners.c:351
+msgid "No miners are running"
+msgstr "Ni zagnanih programov za podatkovno rudarjenje"
+
+#: ../src/tracker-control/tracker-control-miners.c:398
+#: ../src/tracker-needle/tracker-stats.vala:112
+msgid "Application"
+msgid_plural "Applications"
+msgstr[0] "Programi"
+msgstr[1] "Program"
+msgstr[2] "Programi"
+msgstr[3] "Programi"
+
+#: ../src/tracker-control/tracker-control-miners.c:400
+msgid "Reason"
+msgstr "Vzrok"
+
+#: ../src/tracker-control/tracker-control-miners.c:409
+msgid "No miners are paused"
+msgstr "Ni podatkovnega rudarjenja v premoru"
+
+#: ../src/tracker-control/tracker-control-miners.c:433
+msgid "You can not use miner pause and resume switches together"
+msgstr "Stikal premora in nadaljevanja podatkovnega rudarjenja ni mogoče uporabiti skupaj"
+
+#: ../src/tracker-control/tracker-control-miners.c:439
+msgid "You must provide the miner for pause or resume commands"
+msgstr "Za ukaze premora ali nadaljevanja je treba zagotoviti podatkovno rudarjenje"
+
+#: ../src/tracker-control/tracker-control-miners.c:445
+msgid "You must provide a pause or resume command for the miner"
+msgstr "Zagotoviti morate ukaz premora ali nadaljevanja za podatkovno rudarjenje"
+
+#: ../src/tracker-control/tracker-control-miners.c:493
+msgid "Miner options"
+msgstr "Možnosti rudarjenja"
+
+#: ../src/tracker-control/tracker-control-miners.c:494
+msgid "Show miner options"
+msgstr "Pokaži možnosti podatkovnega rudarjenja"
+
+#: ../src/tracker-control/tracker-control-status.c:50
+#: ../src/tracker-control/tracker-control-status.c:306
+msgid "Unavailable"
+msgstr "Ni na voljo"
+
+#. generic
+#: ../src/tracker-control/tracker-control-status.c:51
+msgid "Initializing"
+msgstr "Zaganjanje"
+
+#: ../src/tracker-control/tracker-control-status.c:53
+msgid "Fetching…"
+msgstr "Pridobivanje ..."
+
+#. miner/rss
+#: ../src/tracker-control/tracker-control-status.c:54
+#, c-format
+msgid "Crawling single directory '%s'"
+msgstr "Kopanje po eni mapi '%s'"
+
+#: ../src/tracker-control/tracker-control-status.c:55
+#, c-format
+msgid "Crawling recursively directory '%s'"
+msgstr "Rekurzivno kopanje po mapi '%s'"
+
+#: ../src/tracker-control/tracker-control-status.c:56
+msgid "Paused"
+msgstr "V premoru"
+
+#: ../src/tracker-control/tracker-control-status.c:57
+msgid "Idle"
+msgstr "Nedejavno"
+
+#: ../src/tracker-control/tracker-control-status.c:62
+msgid "Show current status"
+msgstr "Pokaži trenutno stanje"
+
+#: ../src/tracker-control/tracker-control-status.c:66
+msgid "Follow status changes as they happen"
+msgstr "Sledi spremembam stanja, ko se zgodijo"
+
+#: ../src/tracker-control/tracker-control-status.c:70
+msgid "List common statuses for miners and the store"
+msgstr "Našteje pogosta stanja za programe podatkovnega rudarjenja in shrambo"
+
+#: ../src/tracker-control/tracker-control-status.c:141
+#, c-format
+msgid "Could not get status from miner: %s"
+msgstr "Ni mogoče dobiti stanja podatkovnega rudarjenja: %s"
+
+#. Translators: %s is a time string
+#: ../src/tracker-control/tracker-control-status.c:203
+#, c-format
+msgid "%s remaining"
+msgstr "%s preostalo"
+
+#: ../src/tracker-control/tracker-control-status.c:206
+msgid "unknown time left"
+msgstr "neznan preostali čas"
+
+#. Work out lengths for output spacing
+#: ../src/tracker-control/tracker-control-status.c:219
+#: ../src/tracker-control/tracker-control-status.c:551
+msgid "PAUSED"
+msgstr "V PREMORU"
+
+#: ../src/tracker-control/tracker-control-status.c:236
+msgid "Not running or is a disabled plugin"
+msgstr "Ne teče ali pa je onemogočen vstavek"
+
+#: ../src/tracker-control/tracker-control-status.c:522
+msgid "Common statuses include"
+msgstr "Pogosta stanja vključujejo"
+
+#: ../src/tracker-control/tracker-control-status.c:540
+#, c-format
+msgid "Could not get status, manager could not be created, %s"
+msgstr "Ni mogoče dobiti stanja, upravljalnika ni mogoče ustvariti, %s"
+
+#. Display states
+#: ../src/tracker-control/tracker-control-status.c:561
+msgid "Store"
+msgstr "Shrani"
+
+#: ../src/tracker-control/tracker-control-status.c:682
+msgid "Status options"
+msgstr "Možnosti stanja"
+
+#: ../src/tracker-control/tracker-control-status.c:683
+msgid "Show status options"
+msgstr "Pokaži možnosti stanja"
+
+#: ../src/tracker-explorer/tracker-explorer.ui.h:1
+#: ../src/tracker-utils/tracker-sparql.c:400
+#: ../src/tracker-utils/tracker-sparql.c:519
+msgid "Properties"
+msgstr "Lastnosti"
+
+#: ../src/tracker-explorer/tracker-explorer.ui.h:2
+#: ../src/tracker-needle/tracker-needle.ui.h:11
+msgid "_Search:"
+msgstr "_Poišči:"
+
+#: ../src/tracker-explorer/tracker-explorer.ui.h:3
+msgid "_URN:"
+msgstr "_URN:"
+
+#: ../src/tracker-extract/tracker-main.c:87
+#: ../src/tracker-store/tracker-main.vala:48
+msgid "Logging, 0 = errors only, 1 = minimal, 2 = detailed and 3 = debug (default = 0)"
+msgstr "Beleženje, 0 = samo napake, 1 = najmanjše, 2 = podrobno in 3 = razhroščevanje (privzeto = 0)"
+
+#: ../src/tracker-extract/tracker-main.c:92
+msgid "File to extract metadata for"
+msgstr "Datoteka za razširitev metapodatkov"
+
+#: ../src/tracker-extract/tracker-main.c:96
+msgid "MIME type for file (if not provided, this will be guessed)"
+msgstr "Vrsta MIME za datoteko (če ni navedena, bo uganjena) "
+
+#: ../src/tracker-extract/tracker-main.c:102
+#: ../src/tracker-writeback/tracker-main.c:62
+msgid "Disable shutting down after 30 seconds of inactivity"
+msgstr "Onemogoči izklop po 30 sekundah nedejavnosti"
+
+#: ../src/tracker-extract/tracker-main.c:106
+msgid "Force internal extractors over 3rd parties like libstreamanalyzer"
+msgstr "Vsili notranje razširjevalnike pred zunanjimi kot je libstreamanalyzer "
+
+#: ../src/tracker-extract/tracker-main.c:110
+msgid "Force a module to be used for extraction (e.g. \"foo\" for \"foo.so\")"
+msgstr "Prisili modul uporabljen za razširitev (na primer \"foo\" za \"foo.so\")"
+
+#: ../src/tracker-extract/tracker-main.c:111
+msgid "MODULE"
+msgstr "MODUL"
+
+#. Translators: this message will appear immediately after the
+#. usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>
+#: ../src/tracker-extract/tracker-main.c:333
+msgid "- Extract file meta data"
+msgstr "- Razširi metapodatke datoteke"
+
+#: ../src/tracker-extract/tracker-main.c:342
+msgid "Filename and mime type must be provided together"
+msgstr "Ime datoteke in vrsta mime morata biti navedeni skupaj"
+
+#: ../src/tracker-extract/tracker-main.c:356
+msgid "Options --force-internal-extractors and --force-module can't be used together"
+msgstr "Možnosti --force-internal-extractors in --force-module ni mogoče uporabiti skupaj"
+
+#: ../src/tracker-needle/tracker-needle.desktop.in.in.h:1
+#: ../src/tracker-needle/tracker-needle.ui.h:2
+msgid "Desktop Search"
+msgstr "Namizno iskanje"
+
+#: ../src/tracker-needle/tracker-needle.desktop.in.in.h:2
+msgid "Find what you're looking for on this computer by name or content using Tracker"
+msgstr "Poiščite kar iščete na tem računalniku po imenu ali vsebini z uporabo Trackerja"
+
+#: ../src/tracker-needle/tracker-needle.ui.h:1
+msgid "Add tag"
+msgstr "Dodaj oznako"
+
+#: ../src/tracker-needle/tracker-needle.ui.h:3
+msgid "Display found images"
+msgstr "Prikaži najdene slike"
+
+#: ../src/tracker-needle/tracker-needle.ui.h:4
+msgid "Display results by category, for example, Music, Videos, Applications, etc."
+msgstr "Prikaži rezultate po kategoriji, na primer glasba, videoposnetki, programi, itd."
+
+#: ../src/tracker-needle/tracker-needle.ui.h:5
+msgid "Display results by files found in a list"
+msgstr "Prikaže rezultate po datotekah najdenih na seznamu"
+
+#: ../src/tracker-needle/tracker-needle.ui.h:6
+msgid "Find search criteria in file titles"
+msgstr "Najdi kriterije iskanje v naslovih datotek"
+
+#: ../src/tracker-needle/tracker-needle.ui.h:7
+msgid "Find search criteria inside files"
+msgstr "Najdi kriterije iskanja znotraj datotek"
+
+#: ../src/tracker-needle/tracker-needle.ui.h:8
+msgid "Remove selected tag"
+msgstr "Odstrani izbrano oznako"
+
+#: ../src/tracker-needle/tracker-needle.ui.h:9
+msgid "Show statistics about the data stored"
+msgstr "Pokaži statistiko o shranjenih podatkih"
+
+#: ../src/tracker-needle/tracker-needle.ui.h:10
+msgid "Show tagging panel which allows editing tags of selected results"
+msgstr "Pokaži pult označevanja, ki omogoča urejanje oznak izbranih predmetov"
+
+#: ../src/tracker-needle/tracker-needle.ui.h:13
+#, no-c-format
+msgid "_Set the tags you want to associate with the %d selected items:"
+msgstr "_Nastavi oznake za povezavo z %d izbranimi predmeti:"
+
+#: ../src/tracker-needle/tracker-needle.vala:69
+#, c-format
+msgid "Search criteria was too generic"
+msgstr "Kriterij iskanja je presplošen"
+
+#: ../src/tracker-needle/tracker-needle.vala:70
+msgid "Only the first 500 items will be displayed"
+msgstr "Prikazanih bo prvih 500 predmetov"
+
+#: ../src/tracker-needle/tracker-needle.vala:698
+#: ../src/tracker-needle/tracker-needle.vala:699
+msgid "[SEARCH-CRITERIA]"
+msgstr "[ISKALNI-POGOJI]"
+
+#: ../src/tracker-needle/tracker-needle.vala:704
+msgid "Desktop Search user interface using Tracker"
+msgstr "Uporabniški vmesnik namiznega iskanja z uporabo Trackerja"
+
+#. Label for dialog
+#: ../src/tracker-needle/tracker-stats.vala:71
+msgid "The statistics represented here do not reflect their availability, rather the total data stored:"
+msgstr "Predstavljena statistika ne odraža dostopnosti, ampak skupna velikost shranjenih podatkov:"
+
+#: ../src/tracker-needle/tracker-stats.vala:91
+msgid "Tag"
+msgid_plural "Tags"
+msgstr[0] "Oznake"
+msgstr[1] "Oznaka"
+msgstr[2] "Oznaki"
+msgstr[3] "Oznake"
+
+#: ../src/tracker-needle/tracker-stats.vala:94
+msgid "Contact"
+msgid_plural "Contacts"
+msgstr[0] "Stiki"
+msgstr[1] "Stik"
+msgstr[2] "Stika"
+msgstr[3] "Stiki"
+
+#: ../src/tracker-needle/tracker-stats.vala:97
+#: ../src/tracker-search-bar/tracker-results-window.c:719
+msgid "Audio"
+msgid_plural "Audios"
+msgstr[0] "Zvoki"
+msgstr[1] "Zvok"
+msgstr[2] "Zvoki"
+msgstr[3] "Zvoki"
+
+#: ../src/tracker-needle/tracker-stats.vala:100
+msgid "Document"
+msgid_plural "Documents"
+msgstr[0] "Dokumenti"
+msgstr[1] "Dokument"
+msgstr[2] "Dokumenti"
+msgstr[3] "Dokumenti"
+
+#: ../src/tracker-needle/tracker-stats.vala:103
+#: ../src/tracker-needle/tracker-view.vala:185
+#: ../src/tracker-preferences/tracker-preferences.vala:149
+msgid "File"
+msgid_plural "Files"
+msgstr[0] "Datoteke"
+msgstr[1] "Datoteka"
+msgstr[2] "Datoteki"
+msgstr[3] "Datoteke"
+
+#: ../src/tracker-needle/tracker-stats.vala:106
+msgid "Folder"
+msgid_plural "Folders"
+msgstr[0] "Mape"
+msgstr[1] "Mapa"
+msgstr[2] "Mape"
+msgstr[3] "Mape"
+
+#: ../src/tracker-needle/tracker-stats.vala:109
+msgid "Image"
+msgid_plural "Images"
+msgstr[0] "Slike"
+msgstr[1] "Slika"
+msgstr[2] "Slike"
+msgstr[3] "Slike"
+
+#. case "nmm:Video":
+#: ../src/tracker-needle/tracker-stats.vala:116
+msgid "Video"
+msgid_plural "Videos"
+msgstr[0] "Posnetki"
+msgstr[1] "Posnetek"
+msgstr[2] "Posnetki"
+msgstr[3] "Posnetki"
+
+#: ../src/tracker-needle/tracker-stats.vala:119
+msgid "Album"
+msgid_plural "Albums"
+msgstr[0] "Albumi"
+msgstr[1] "Album"
+msgstr[2] "Albumi"
+msgstr[3] "Albumi"
+
+#: ../src/tracker-needle/tracker-stats.vala:122
+msgid "Music Track"
+msgid_plural "Music Tracks"
+msgstr[0] "Glasba"
+msgstr[1] "Glasba"
+msgstr[2] "Glasba"
+msgstr[3] "Glasba"
+
+#: ../src/tracker-needle/tracker-stats.vala:125
+msgid "Photo"
+msgid_plural "Photos"
+msgstr[0] "Fotografije"
+msgstr[1] "Fotografija"
+msgstr[2] "Fotografije"
+msgstr[3] "Fotografije"
+
+#: ../src/tracker-needle/tracker-stats.vala:128
+msgid "Playlist"
+msgid_plural "Playlists"
+msgstr[0] "Seznami predvajanja"
+msgstr[1] "Seznam predvajanja"
+msgstr[2] "Seznami predvajanja"
+msgstr[3] "Seznami predvajanja"
+
+#: ../src/tracker-needle/tracker-stats.vala:131
+msgid "Email"
+msgid_plural "Emails"
+msgstr[0] "Elektronska pošta"
+msgstr[1] "Elektronska pošta"
+msgstr[2] "Elektronska pošta"
+msgstr[3] "Elektronska pošta"
+
+#: ../src/tracker-needle/tracker-stats.vala:134
+msgid "Bookmark"
+msgid_plural "Bookmarks"
+msgstr[0] "Zaznamki"
+msgstr[1] "Zaznamek"
+msgstr[2] "Zaznamki"
+msgstr[3] "Zaznamki"
+
+#: ../src/tracker-needle/tracker-tags-view.vala:328
+msgid "Name"
+msgstr "Ime"
+
+#: ../src/tracker-needle/tracker-tags-view.vala:384
+msgid "No items currently selected"
+msgstr "Ni izbranih predmetov"
+
+#: ../src/tracker-needle/tracker-tags-view.vala:470
+#: ../src/tracker-needle/tracker-tags-view.vala:611
+msgid "Could not update tags"
+msgstr "Oznak ni mogoče posodobiti"
+
+#: ../src/tracker-needle/tracker-tags-view.vala:530
+#: ../src/tracker-utils/tracker-tag.c:803
+msgid "Could not remove tag"
+msgstr "Ni mogoče odstraniti oznake"
+
+#: ../src/tracker-needle/tracker-tags-view.vala:705
+msgid "Could toggle tags according to selection"
+msgstr "Glede na izbor je mogoče preklapljati oznake"
+
+#: ../src/tracker-needle/tracker-tags-view.vala:744
+#: ../src/tracker-utils/tracker-tag.c:627
+msgid "Could not add tag"
+msgstr "Ni mogoče dodati oznake"
+
+#: ../src/tracker-needle/tracker-tags-view.vala:801
+msgid "Could not update tags for file"
+msgstr "Oznak datotek ni mogoče posodobiti"
+
+#. Translators: This is a strftime(3) date format string, read its man page to fit your locale better
+#: ../src/tracker-needle/tracker-utils.vala:108
+#, no-c-format
+msgid "%x"
+msgstr "%x"
+
+#: ../src/tracker-needle/tracker-utils.vala:112
+msgid "Today"
+msgstr "Danes"
+
+#: ../src/tracker-needle/tracker-utils.vala:121
+msgid "Tomorrow"
+msgstr "Jutri"
+
+#: ../src/tracker-needle/tracker-utils.vala:123
+msgid "Yesterday"
+msgstr "Včeraj"
+
+#. Translators: %d is replaced with a number of days. It's always greater than 1
+#: ../src/tracker-needle/tracker-utils.vala:127
+#, c-format
+msgid "%ld day from now"
+msgid_plural "%ld days from now"
+msgstr[0] "čez %ld dni"
+msgstr[1] "čez %ld dan"
+msgstr[2] "čez %ld dni"
+msgstr[3] "čez %ld dni"
+
+#. Translators: %d is replaced with a number of days. It's always greater than 1
+#: ../src/tracker-needle/tracker-utils.vala:130
+#, c-format
+msgid "%ld day ago"
+msgid_plural "%ld days ago"
+msgstr[0] "pred %ld dnevi"
+msgstr[1] "pred %ld dnevom"
+msgstr[2] "pred %ld dnevoma"
+msgstr[3] "pred %ld dnevi"
+
+#: ../src/tracker-needle/tracker-utils.vala:142
+#: ../src/tracker-needle/tracker-utils.vala:171
+msgid "Less than one second"
+msgstr "Pred manj kot eno sekundo"
+
+#: ../src/tracker-needle/tracker-view.vala:111
+msgid "No Search Results"
+msgstr "Iskanje ni vrnilo rezultatov"
+
+#: ../src/tracker-needle/tracker-view.vala:112
+msgid "Select the view on the toolbar for the content you want, e.g. everything, files or just images"
+msgstr "Izberi pogled orodne vrstice za želeno vsebino, na primer, vse, datoteke, slike in podobno."
+
+#: ../src/tracker-needle/tracker-view.vala:113
+msgid "Start to search using the entry box above"
+msgstr "Začni iskanje z uporabo zgornjega vnosnega polja"
+
+#: ../src/tracker-needle/tracker-view.vala:197
+msgid "Last Changed"
+msgstr "Nazadnje spremenjeno"
+
+#: ../src/tracker-needle/tracker-view.vala:206
+msgid "Size"
+msgstr "Velikost"
+
+#: ../src/tracker-needle/tracker-view.vala:334
+msgid "Music"
+msgstr "Glasba"
+
+#: ../src/tracker-needle/tracker-view.vala:337
+#: ../src/tracker-search-bar/tracker-results-window.c:718
+msgid "Images"
+msgstr "Slike"
+
+#: ../src/tracker-needle/tracker-view.vala:340
+#: ../src/tracker-search-bar/tracker-results-window.c:722
+msgid "Videos"
+msgstr "Posnetki"
+
+#: ../src/tracker-needle/tracker-view.vala:343
+#: ../src/tracker-search-bar/tracker-results-window.c:716
+msgid "Documents"
+msgstr "Dokumenti"
+
+#: ../src/tracker-needle/tracker-view.vala:346
+msgid "Mail"
+msgstr "Pošta"
+
+#: ../src/tracker-needle/tracker-view.vala:349
+#: ../src/tracker-search-bar/tracker-results-window.c:720
+msgid "Folders"
+msgstr "Mape"
+
+#: ../src/tracker-needle/tracker-view.vala:352
+#: ../src/tracker-search-bar/tracker-results-window.c:724
+#: ../src/tracker-utils/tracker-search.c:912
+msgid "Bookmarks"
+msgstr "Zaznamki"
+
+#: ../src/tracker-needle/tracker-view.vala:356
+msgid "Items"
+msgstr "Predmeti"
+
+#: ../src/tracker-needle/tracker-view.vala:368
+#, c-format
+msgid "Loading..."
+msgstr "Nalaganje ..."
+
+#: ../src/tracker-needle/tracker-view.vala:434
+msgid "Pages"
+msgstr "Strani"
+
+#: ../src/tracker-needle/tracker-view.vala:451
+msgid "_Show Parent Directory"
+msgstr "_Pokaži nadrejeno mapo"
+
+#: ../src/tracker-needle/tracker-view.vala:458
+msgid "_Tags..."
+msgstr "_Oznake ..."
+
+#: ../src/tracker-preferences/tracker-preferences.desktop.in.in.h:1
+msgid "Configure file indexing with Tracker"
+msgstr "Nastavitev priprave kazala datotek"
+
+#: ../src/tracker-preferences/tracker-preferences.desktop.in.in.h:2
+msgid "Search and Indexing"
+msgstr "Iskanje in priprava kazala"
 
 #: ../src/tracker-preferences/tracker-preferences.ui.h:1
 msgid "<b>Garbage Collection</b>"
@@ -985,354 +1771,89 @@ msgstr "_Med izvajanjem drugih programov, razen začetnega nabora podatkov"
 msgid "seconds"
 msgstr "sekunde"
 
-#: ../src/tracker-needle/tracker-needle.desktop.in.in.h:1
-#: ../src/tracker-needle/tracker-needle.ui.h:1
-msgid "Desktop Search"
-msgstr "Namizno iskanje"
+#: ../src/tracker-preferences/tracker-preferences.vala:146
+#: ../src/tracker-preferences/tracker-preferences.vala:147
+#: ../src/tracker-preferences/tracker-preferences.vala:148
+msgid "Directory"
+msgstr "Mapa"
 
-#: ../src/tracker-needle/tracker-needle.desktop.in.in.h:2
-msgid "Find what you're looking for on this computer by name or content using Tracker"
-msgstr "Poiščite kar iščete na tem računalniku po imenu ali vsebini z uporabo Trackerja"
+#: ../src/tracker-preferences/tracker-preferences.vala:329
+#: ../src/tracker-preferences/tracker-preferences.vala:338
+msgid "Disabled"
+msgstr "Onemogočeno"
 
-#: ../src/tracker-needle/tracker-needle.vala:69
+#: ../src/tracker-preferences/tracker-preferences.vala:332
 #, c-format
-msgid "Search criteria was too generic"
-msgstr "Kriterij iskanja je presplošen"
+msgid "%d%%"
+msgstr "%d%%"
 
-#: ../src/tracker-needle/tracker-needle.vala:70
-msgid "Only the first 500 items will be displayed"
-msgstr "Prikazanih bo prvih 500 predmetov"
-
-#: ../src/tracker-needle/tracker-needle.vala:654
-#: ../src/tracker-needle/tracker-needle.vala:655
-msgid "[SEARCH-CRITERIA]"
-msgstr "[ISKALNI-POGOJI]"
-
-#: ../src/tracker-needle/tracker-needle.vala:660
-msgid "Desktop Search user interface using Tracker"
-msgstr "Uporabniški vmesnik namiznega iskanja z uporabo Trackerja"
-
-#: ../src/tracker-needle/tracker-tags-filter.vala:58
-msgid "Filter by tags"
-msgstr " Filtriraj po oznakah"
-
-#: ../src/tracker-needle/tracker-tags-view.vala:302
-msgid "Name"
-msgstr "Ime"
-
-#. Translators: This is a strftime(3) date format string, read its man page to fit your locale better
-#: ../src/tracker-needle/tracker-utils.vala:108
-#, no-c-format
-msgid "%x"
-msgstr "%x"
-
-#: ../src/tracker-needle/tracker-utils.vala:112
-msgid "Today"
-msgstr "Danes"
-
-#: ../src/tracker-needle/tracker-utils.vala:121
-msgid "Tomorrow"
-msgstr "Jutri"
-
-#: ../src/tracker-needle/tracker-utils.vala:123
-msgid "Yesterday"
-msgstr "Včeraj"
-
-#. Translators: %d is replaced with a number of days. It's always greater than 1
-#: ../src/tracker-needle/tracker-utils.vala:127
+#: ../src/tracker-preferences/tracker-preferences.vala:341
 #, c-format
-msgid "%ld day from now"
-msgid_plural "%ld days from now"
-msgstr[0] "čez %ld dni"
-msgstr[1] "čez %ld dan"
-msgstr[2] "čez %ld dni"
-msgstr[3] "čez %ld dni"
+msgid "%d"
+msgstr "%d"
 
-#. Translators: %d is replaced with a number of days. It's always greater than 1
-#: ../src/tracker-needle/tracker-utils.vala:130
-#, c-format
-msgid "%ld day ago"
-msgid_plural "%ld days ago"
-msgstr[0] "pred %ld dnevi"
-msgstr[1] "pred %ld dnevom"
-msgstr[2] "pred %ld dnevoma"
-msgstr[3] "pred %ld dnevi"
+#: ../src/tracker-preferences/tracker-preferences.vala:485
+msgid "Enter value"
+msgstr "Vnesite vrednost"
 
-#: ../src/tracker-needle/tracker-utils.vala:142
-#: ../src/tracker-needle/tracker-utils.vala:171
-msgid "Less than one second"
-msgstr "Pred manj kot eno sekundo"
+#: ../src/tracker-preferences/tracker-preferences.vala:514
+msgid "Select directory"
+msgstr "Izbor mape"
 
-#: ../src/tracker-needle/tracker-view.vala:111
-msgid "No Search Results"
-msgstr "Iskanje ni vrnilo rezultatov"
+#: ../src/tracker-preferences/tracker-preferences.vala:535
+msgid "That directory is already selected as a location to index"
+msgstr "Ta mapa je že izbrana kot mesto kazala"
 
-#: ../src/tracker-needle/tracker-view.vala:112
-msgid "Select the view on the toolbar for the content you want, e.g. everything, files or just images"
-msgstr "Izberi pogled orodne vrstice za želeno vsebino, na primer, vse, datoteke, slike in podobno."
+#: ../src/tracker-preferences/tracker-preferences.vala:797
+msgid "Recurse"
+msgstr "Po strukturi map"
 
-#: ../src/tracker-needle/tracker-view.vala:113
-msgid "Start to search using the entry box above"
-msgstr "Začni iskanje z uporabo zgornjega vnosnega polja"
-
-#: ../src/tracker-needle/tracker-view.vala:197
-msgid "Last Changed"
-msgstr "Nazadnje spremenjeno"
-
-#: ../src/tracker-needle/tracker-view.vala:206
-msgid "Size"
-msgstr "Velikost"
-
-#: ../src/tracker-needle/tracker-view.vala:334
-msgid "Music"
-msgstr "Glasba"
-
-#: ../src/tracker-needle/tracker-view.vala:337
-#: ../src/tracker-search-bar/tracker-results-window.c:723
-msgid "Images"
-msgstr "Slike"
-
-#: ../src/tracker-needle/tracker-view.vala:340
-#: ../src/tracker-search-bar/tracker-results-window.c:727
-msgid "Videos"
-msgstr "Posnetki"
-
-#: ../src/tracker-needle/tracker-view.vala:343
-#: ../src/tracker-search-bar/tracker-results-window.c:721
-msgid "Documents"
-msgstr "Dokumenti"
-
-#: ../src/tracker-needle/tracker-view.vala:346
-msgid "Mail"
-msgstr "Pošta"
-
-#: ../src/tracker-needle/tracker-view.vala:349
-#: ../src/tracker-search-bar/tracker-results-window.c:725
-msgid "Folders"
-msgstr "Mape"
-
-#: ../src/tracker-needle/tracker-view.vala:352
-#: ../src/tracker-search-bar/tracker-results-window.c:729
-#: ../src/tracker-utils/tracker-search.c:912
-msgid "Bookmarks"
-msgstr "Zaznamki"
-
-#: ../src/tracker-needle/tracker-view.vala:356
-msgid "Items"
-msgstr "Predmeti"
-
-#: ../src/tracker-needle/tracker-view.vala:368
-#, c-format
-msgid "Loading..."
-msgstr "Nalaganje ..."
-
-#: ../src/tracker-needle/tracker-view.vala:434
-msgid "Pages"
-msgstr "Strani"
-
-#: ../src/tracker-needle/tracker-view.vala:451
-msgid "_Show Parent Directory"
-msgstr "_Pokaži nadrejeno mapo"
-
-#: ../src/tracker-needle/tracker-view.vala:458
-msgid "_Tags..."
-msgstr "_Oznake ..."
-
-#. Label for dialog
-#: ../src/tracker-needle/tracker-stats.vala:71
-msgid "The statistics represented here do not reflect their availability, rather the total data stored:"
-msgstr "Predstavljena statistika ne odraža dostopnosti, ampak skupna velikost shranjenih podatkov:"
-
-#: ../src/tracker-needle/tracker-stats.vala:91
-msgid "Tag"
-msgid_plural "Tags"
-msgstr[0] "Oznake"
-msgstr[1] "Oznaka"
-msgstr[2] "Oznaki"
-msgstr[3] "Oznake"
-
-#: ../src/tracker-needle/tracker-stats.vala:94
-msgid "Contact"
-msgid_plural "Contacts"
-msgstr[0] "Stiki"
-msgstr[1] "Stik"
-msgstr[2] "Stika"
-msgstr[3] "Stiki"
-
-#: ../src/tracker-needle/tracker-stats.vala:97
-#: ../src/tracker-search-bar/tracker-results-window.c:724
-msgid "Audio"
-msgid_plural "Audios"
-msgstr[0] "Zvoki"
-msgstr[1] "Zvok"
-msgstr[2] "Zvoki"
-msgstr[3] "Zvoki"
-
-#: ../src/tracker-needle/tracker-stats.vala:100
-msgid "Document"
-msgid_plural "Documents"
-msgstr[0] "Dokumenti"
-msgstr[1] "Dokument"
-msgstr[2] "Dokumenti"
-msgstr[3] "Dokumenti"
-
-#: ../src/tracker-needle/tracker-stats.vala:106
-msgid "Folder"
-msgid_plural "Folders"
-msgstr[0] "Mape"
-msgstr[1] "Mapa"
-msgstr[2] "Mape"
-msgstr[3] "Mape"
-
-#: ../src/tracker-needle/tracker-stats.vala:109
-msgid "Image"
-msgid_plural "Images"
-msgstr[0] "Slike"
-msgstr[1] "Slika"
-msgstr[2] "Slike"
-msgstr[3] "Slike"
-
-#: ../src/tracker-needle/tracker-stats.vala:112
-#: ../src/tracker-control/tracker-control-miners.c:398
-msgid "Application"
-msgid_plural "Applications"
-msgstr[0] "Programi"
-msgstr[1] "Program"
-msgstr[2] "Programi"
-msgstr[3] "Programi"
-
-#. case "nmm:Video":
-#: ../src/tracker-needle/tracker-stats.vala:116
-msgid "Video"
-msgid_plural "Videos"
-msgstr[0] "Posnetki"
-msgstr[1] "Posnetek"
-msgstr[2] "Posnetki"
-msgstr[3] "Posnetki"
-
-#: ../src/tracker-needle/tracker-stats.vala:119
-msgid "Album"
-msgid_plural "Albums"
-msgstr[0] "Albumi"
-msgstr[1] "Album"
-msgstr[2] "Albumi"
-msgstr[3] "Albumi"
-
-#: ../src/tracker-needle/tracker-stats.vala:122
-msgid "Music Track"
-msgid_plural "Music Tracks"
-msgstr[0] "Glasba"
-msgstr[1] "Glasba"
-msgstr[2] "Glasba"
-msgstr[3] "Glasba"
-
-#: ../src/tracker-needle/tracker-stats.vala:125
-msgid "Photo"
-msgid_plural "Photos"
-msgstr[0] "Fotografije"
-msgstr[1] "Fotografija"
-msgstr[2] "Fotografije"
-msgstr[3] "Fotografije"
-
-#: ../src/tracker-needle/tracker-stats.vala:128
-msgid "Playlist"
-msgid_plural "Playlists"
-msgstr[0] "Seznami predvajanja"
-msgstr[1] "Seznam predvajanja"
-msgstr[2] "Seznami predvajanja"
-msgstr[3] "Seznami predvajanja"
-
-#: ../src/tracker-needle/tracker-stats.vala:131
-msgid "Email"
-msgid_plural "Emails"
-msgstr[0] "Elektronska pošta"
-msgstr[1] "Elektronska pošta"
-msgstr[2] "Elektronska pošta"
-msgstr[3] "Elektronska pošta"
-
-#: ../src/tracker-needle/tracker-stats.vala:134
-msgid "Bookmark"
-msgid_plural "Bookmarks"
-msgstr[0] "Zaznamki"
-msgstr[1] "Zaznamek"
-msgstr[2] "Zaznamki"
-msgstr[3] "Zaznamki"
-
-#: ../src/tracker-needle/tracker-needle.ui.h:2
-msgid "Display found images"
-msgstr "Prikaži najdene slike"
-
-#: ../src/tracker-needle/tracker-needle.ui.h:3
-msgid "Display results by category, for example, Music, Videos, Applications, etc."
-msgstr "Prikaži rezultate po kategoriji, na primer glasba, videoposnetki, programi, itd."
-
-#: ../src/tracker-needle/tracker-needle.ui.h:4
-msgid "Display results by files found in a list"
-msgstr "Prikaže rezultate po datotekah najdenih na seznamu"
-
-#: ../src/tracker-needle/tracker-needle.ui.h:5
-msgid "Find search criteria in file titles"
-msgstr "Najdi kriterije iskanje v naslovih datotek"
-
-#: ../src/tracker-needle/tracker-needle.ui.h:6
-msgid "Find search criteria inside files"
-msgstr "Najdi kriterije iskanja znotraj datotek"
-
-#: ../src/tracker-needle/tracker-needle.ui.h:7
-msgid "Show results by tags"
-msgstr "Pokaži zadetke po oznakah"
-
-#: ../src/tracker-needle/tracker-needle.ui.h:8
-msgid "Show statistics about the data stored"
-msgstr "Pokaži statistiko o shranjenih podatkih"
-
-#: ../src/tracker-needle/tracker-needle.ui.h:11
-#, no-c-format
-msgid "_Set the tags you want to associate with the %d selected items:"
-msgstr "_Nastavi oznake za povezavo z %d izbranimi predmeti:"
-
-#: ../src/tracker-search-bar/tracker-results-window.c:717
-#: ../src/tracker-search-bar/tracker-results-window.c:733
-msgid "Other"
-msgstr "Ostalo"
-
-#: ../src/tracker-search-bar/tracker-results-window.c:718
-#: ../src/tracker-utils/tracker-search.c:239
-msgid "Contacts"
-msgstr "Stiki"
-
-#: ../src/tracker-search-bar/tracker-results-window.c:720
-msgid "Email Addresses"
-msgstr "Naslovi elektronske pošte"
-
-#: ../src/tracker-search-bar/tracker-results-window.c:726
-msgid "Fonts"
-msgstr "Pisave"
-
-#: ../src/tracker-search-bar/tracker-results-window.c:728
-msgid "Archives"
-msgstr "Arhivi"
-
-#: ../src/tracker-search-bar/tracker-results-window.c:730
-msgid "Links"
-msgstr "Povezave"
-
-#: ../src/tracker-search-bar/tracker-results-window.c:1104
-msgid "Category"
-msgstr "Kategorija"
-
-#: ../src/tracker-search-bar/tracker-results-window.c:1132
-msgid "Title"
-msgstr "Naslov"
-
-#: ../src/tracker-search-bar/tracker-results-window.c:1198
-#, c-format
-msgid "No results found for “%s”"
-msgstr "Za “%s” ni najdenih rezultatov"
+#: ../src/tracker-preferences/tracker-preferences.vala:898
+msgid "Desktop Search preferences"
+msgstr "Možnosti namiznega iskanja"
 
 #: ../src/tracker-search-bar/tracker-applet.c:40
 msgid "_About"
 msgstr "_O Programu"
+
+#: ../src/tracker-search-bar/tracker-results-window.c:712
+#: ../src/tracker-search-bar/tracker-results-window.c:728
+msgid "Other"
+msgstr "Ostalo"
+
+#: ../src/tracker-search-bar/tracker-results-window.c:713
+#: ../src/tracker-utils/tracker-search.c:239
+msgid "Contacts"
+msgstr "Stiki"
+
+#: ../src/tracker-search-bar/tracker-results-window.c:715
+msgid "Email Addresses"
+msgstr "Naslovi elektronske pošte"
+
+#: ../src/tracker-search-bar/tracker-results-window.c:721
+msgid "Fonts"
+msgstr "Pisave"
+
+#: ../src/tracker-search-bar/tracker-results-window.c:723
+msgid "Archives"
+msgstr "Arhivi"
+
+#: ../src/tracker-search-bar/tracker-results-window.c:725
+msgid "Links"
+msgstr "Povezave"
+
+#: ../src/tracker-search-bar/tracker-results-window.c:1101
+msgid "Category"
+msgstr "Kategorija"
+
+#: ../src/tracker-search-bar/tracker-results-window.c:1129
+msgid "Title"
+msgstr "Naslov"
+
+#: ../src/tracker-search-bar/tracker-results-window.c:1195
+#, c-format
+msgid "No results found for “%s”"
+msgstr "Za “%s” ni najdenih rezultatov"
 
 #: ../src/tracker-search-bar/tracker-search-bar.ui.h:1
 msgid "A search bar applet for finding content stored in Tracker"
@@ -1374,483 +1895,6 @@ msgstr "- zažene ozadnji program tracker"
 
 #. Translators: this messagge will apper immediately after the
 #. usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>
-#: ../src/tracker-control/tracker-control.c:77
-msgid " - Manage Tracker processes and data"
-msgstr "- Upravljanje opravil in podatkov programa Tracker"
-
-#: ../src/tracker-control/tracker-control.c:101
-msgid "General and Status options cannot be used together"
-msgstr "Splošnih možnosti in možnosti stanja ni mogoče uporabljati skupaj"
-
-#: ../src/tracker-control/tracker-control.c:107
-msgid "General and Miners options cannot be used together"
-msgstr "Splošnih možnosti in možnosti podatkovnega rudarjenja ni mogoče uporabljati skupaj"
-
-#: ../src/tracker-control/tracker-control.c:118
-msgid "Status and Miners options cannot be used together"
-msgstr "Možnosti stanja in možnosti podatkovnega rudarjenja ni mogoče uporabljati skupaj"
-
-#: ../src/tracker-control/tracker-control.c:135
-msgid "Unrecognized options"
-msgstr "Nepoznane možnosti"
-
-#: ../src/tracker-control/tracker-control-general.c:80
-msgid "List all Tracker processes"
-msgstr "Izpiši vsa opravila Tracker"
-
-#: ../src/tracker-control/tracker-control-general.c:82
-msgid "Use SIGKILL to stop all matching processes, either \"store\", \"miners\" or \"all\" may be used, no parameter equals \"all\""
-msgstr "Uporabi SIGKILL za končanje vseh skladajočih opravil, mogoče je uporabiti parametre \"store\", \"miners\" ali \"all\", nedoločen parameter pomeni \"all\""
-
-#: ../src/tracker-control/tracker-control-general.c:83
-#: ../src/tracker-control/tracker-control-general.c:86
-msgid "APPS"
-msgstr "Izbrani programi"
-
-#: ../src/tracker-control/tracker-control-general.c:85
-msgid "Use SIGTERM to stop all matching processes, either \"store\", \"miners\" or \"all\" may be used, no parameter equals \"all\""
-msgstr "Uporabi SIGKILL za zaustavitev vseh skladajočih opravil, mogoče je uporabiti parametre \"store\", \"miners\" ali \"all\", nedoločen parameter pomeni \"all\""
-
-#: ../src/tracker-control/tracker-control-general.c:88
-msgid "Kill all Tracker processes and remove all databases"
-msgstr "To bo uničilo vsa opravila programa Tracker in odstranilo vse podatkovne zbirke"
-
-#: ../src/tracker-control/tracker-control-general.c:91
-msgid "Same as --hard-reset but the backup & journal are restored after restart"
-msgstr "Enako kot --hard-reset toda varnostna kopija in dnevnik sta po ponovnem zagonu obnovljena"
-
-#: ../src/tracker-control/tracker-control-general.c:94
-msgid "Remove all configuration files so they are re-generated on next start"
-msgstr "Odstrani vse nastavitvene datoteke, tako, da so ponovno ustvarjene ob naslednjem začetku"
-
-#: ../src/tracker-control/tracker-control-general.c:97
-msgid "Sets the logging verbosity to LEVEL ('debug', 'detailed', 'minimal', 'errors') for all processes"
-msgstr "Določa obsežnost beleženja na RAVEN ('debug' - razhroščevalna, 'detailed' - podrobna, 'minimal' - minimalna, 'errors' - le napake) za vsa opravila"
-
-#: ../src/tracker-control/tracker-control-general.c:98
-msgid "LEVEL"
-msgstr "RAVEN"
-
-#: ../src/tracker-control/tracker-control-general.c:100
-msgid "Show logging values in terms of log verbosity for each process"
-msgstr "Pokaži vrednosti beleženja glede na obsežnost beleženja za vsako opravilo"
-
-#: ../src/tracker-control/tracker-control-general.c:103
-msgid "Starts miners (which indirectly starts tracker-store too)"
-msgstr "Začne podatkovno rudarjenje (kar posredno začne tudi tracker-shrambo)"
-
-#: ../src/tracker-control/tracker-control-general.c:106
-msgid "Backup databases to the file provided"
-msgstr "Ustvari varnostno kopijo podatkovnih zbirk v izbrano datoteko"
-
-#: ../src/tracker-control/tracker-control-general.c:109
-msgid "Restore databases from the file provided"
-msgstr "Obnovi podatkovne zbirke iz izbrane datoteke"
-
-#: ../src/tracker-control/tracker-control-general.c:131
-msgid "Could not open /proc"
-msgstr "Ni mogoče odpreti /proc"
-
-#: ../src/tracker-control/tracker-control-general.c:132
-#: ../src/tracker-control/tracker-control-general.c:691
-#: ../src/tracker-control/tracker-control-general.c:731
-#: ../src/tracker-control/tracker-control-general.c:752
-msgid "no error given"
-msgstr "napaka ni podana"
-
-#: ../src/tracker-control/tracker-control-general.c:324
-#, c-format
-msgid "Could not get GSettings for miners, manager could not be created, %s"
-msgstr "Ni mogoče dobiti podatkov GSettings za podatkovno rudarjenje, saj upravljalnika ni mogoče ustvariti, %s"
-
-#: ../src/tracker-control/tracker-control-general.c:588
-msgid "You can not use the --kill and --terminate arguments together"
-msgstr "Argumentov --kill in --terminate ni mogoče uporabiti skupaj"
-
-#: ../src/tracker-control/tracker-control-general.c:594
-msgid "You can not use the --terminate with --hard-reset or --soft-reset, --kill is implied"
-msgstr "Argumenta --terminate ni mogoče uporabiti s --hard-reset, --kill je predpostavljen"
-
-#: ../src/tracker-control/tracker-control-general.c:600
-msgid "You can not use the --hard-reset and --soft-reset arguments together"
-msgstr "Argumentov --hard-reset in --soft-reset ni mogoče uporabiti skupaj"
-
-#: ../src/tracker-control/tracker-control-general.c:606
-msgid "You can not use the --get-logging and --set-logging arguments together"
-msgstr "Argumentov --get-logging in --set-logging ni mogoče uporabiti skupaj"
-
-#: ../src/tracker-control/tracker-control-general.c:621
-msgid "Invalid log verbosity, try 'debug', 'detailed', 'minimal' or 'errors'"
-msgstr "Neveljavna obsežnost beleženja, poskusite z 'debug' (razhroščevalna), 'detailed' (podrobna), 'minimal' (minimalna) ali 'errors' (napake)"
-
-#: ../src/tracker-control/tracker-control-general.c:688
-#, c-format
-msgid "Could not open '%s'"
-msgstr "Ni mogoče odpreti '%s'"
-
-#: ../src/tracker-control/tracker-control-general.c:713
-#, c-format
-msgid "Found process ID %d for '%s'"
-msgstr "Najden je bil ID opravila %d za '%s'"
-
-#: ../src/tracker-control/tracker-control-general.c:728
-#, c-format
-msgid "Could not terminate process %d"
-msgstr "Opravila %d ni mogoče končati"
-
-#: ../src/tracker-control/tracker-control-general.c:734
-#, c-format
-msgid "Terminated process %d"
-msgstr "Opravilo %d je končano"
-
-#: ../src/tracker-control/tracker-control-general.c:749
-#, c-format
-msgid "Could not kill process %d"
-msgstr "Opravila %d ni mogoče uničiti"
-
-#: ../src/tracker-control/tracker-control-general.c:755
-#, c-format
-msgid "Killed process %d"
-msgstr "Opravilo %d je bilo uničeno"
-
-#: ../src/tracker-control/tracker-control-general.c:883
-msgid "Removing configuration files…"
-msgstr "Odstranjevanje namestitvenih datotek ..."
-
-#: ../src/tracker-control/tracker-control-general.c:891
-msgid "Resetting existing configuration…"
-msgstr "Poteka čiščenje obstoječih nastavitev ..."
-
-#: ../src/tracker-control/tracker-control-general.c:939
-#: ../src/tracker-control/tracker-control-general.c:981
-msgid "Components"
-msgstr "Komponente"
-
-#: ../src/tracker-control/tracker-control-general.c:945
-#: ../src/tracker-control/tracker-control-general.c:987
-#: ../src/tracker-control/tracker-control-miners.c:391
-#: ../src/tracker-control/tracker-control-status.c:567
-msgid "Miners"
-msgstr "Podatkovno rudarjenje"
-
-#: ../src/tracker-control/tracker-control-general.c:946
-#: ../src/tracker-control/tracker-control-general.c:988
-msgid "Only those with config listed"
-msgstr "Samo tisti z izpisano prilagoditvijo"
-
-#: ../src/tracker-control/tracker-control-general.c:964
-#, c-format
-msgid "Setting log verbosity for all components to '%s'…"
-msgstr "Določanje obsežnosti beleženja za vse komponente na '%s' …"
-
-#: ../src/tracker-control/tracker-control-general.c:1004
-msgid "Waiting one second before starting miners…"
-msgstr "Čakanje eno sekundo pred začetkom podatkovnega rudarjenja ..."
-
-#: ../src/tracker-control/tracker-control-general.c:1010
-msgid "Starting miners…"
-msgstr "Začenjanje podatkovnega rudarjenja ..."
-
-#: ../src/tracker-control/tracker-control-general.c:1016
-#, c-format
-msgid "Could not start miners, manager could not be created, %s"
-msgstr "Podatkovnega rudarjenja ni mogoče začeti, upravljalnika ni bilo mogoče ustvariti, %s"
-
-#: ../src/tracker-control/tracker-control-general.c:1041
-msgid "perhaps a disabled plugin?"
-msgstr "morda onemogočen vstavek?"
-
-#: ../src/tracker-control/tracker-control-general.c:1063
-msgid "Backing up database"
-msgstr "Ustvarjanje varnostne kopije podatkovne zbirke"
-
-#: ../src/tracker-control/tracker-control-general.c:1135
-msgid "Restoring database from backup"
-msgstr "Obnavljanje podatkovne zbirke iz varnostne kopije"
-
-#: ../src/tracker-control/tracker-control-general.c:1208
-msgid "General options"
-msgstr "Splošne možnosti"
-
-#: ../src/tracker-control/tracker-control-general.c:1209
-msgid "Show general options"
-msgstr "Pokaži splošne možnosti"
-
-#: ../src/tracker-control/tracker-control-miners.c:56
-msgid "Tell miners to reindex files which match the mime type supplied (for new extractors), use -m MIME1 -m MIME2"
-msgstr "Podatkovno rudarjenja naj pripravi kazalo iz vseh datotek, ki se skladajo s podano vrsto MIME (za nove razširjevalnike), uporabite -m MIME1 -m MIME2"
-
-#: ../src/tracker-control/tracker-control-miners.c:59
-msgid "Tell miners to (re)index a given file"
-msgstr "Podatkovno rudarjenje naj (znova) pripravi kazalo dane datoteke"
-
-#: ../src/tracker-control/tracker-control-miners.c:62
-msgid "Pause a miner (you must use this with --miner)"
-msgstr "Premor podatkovnega rudarjenja (uporabljen mora biti  z --miner)"
-
-#: ../src/tracker-control/tracker-control-miners.c:63
-#: ../src/tracker-control/tracker-control-miners.c:67
-msgid "REASON"
-msgstr "VZROK"
-
-#: ../src/tracker-control/tracker-control-miners.c:66
-msgid "Pause a miner while the calling process is alive or until resumed (you must use this with --miner)"
-msgstr "Premor podatkovnega rudarjenja medtem ko je opravilo klicanja živo ali dokler ga ne nadaljujete (uporabljen mora biti  z --miner)"
-
-#: ../src/tracker-control/tracker-control-miners.c:70
-msgid "Resume a miner (you must use this with --miner)"
-msgstr "Nadaljevanje podatkovnega rudarjenja (uporabljen mora biti  z --miner)"
-
-#: ../src/tracker-control/tracker-control-miners.c:71
-msgid "COOKIE"
-msgstr "PIŠKOTEK"
-
-#: ../src/tracker-control/tracker-control-miners.c:74
-msgid "Miner to use with --resume or --pause (you can use suffixes, e.g. Files or Applications)"
-msgstr "Podatkovno rudarjenje za uporabo z --resume ali --pause (uporabite lahko pripone, na primer datoteke ali programi)"
-
-#: ../src/tracker-control/tracker-control-miners.c:75
-msgid "MINER"
-msgstr "PODATKOVNO RUDARJENJE"
-
-#: ../src/tracker-control/tracker-control-miners.c:78
-msgid "List all miners currently running"
-msgstr "Seznam vseh trenutno dejavnih programov za podatkovno rudarjenje"
-
-#: ../src/tracker-control/tracker-control-miners.c:82
-msgid "List all miners installed"
-msgstr "Izpis vseh nameščenih programov za podatkovno rudarjenje"
-
-#: ../src/tracker-control/tracker-control-miners.c:86
-msgid "List pause reasons"
-msgstr "Izpiši vzroke premorov"
-
-#: ../src/tracker-control/tracker-control-miners.c:111
-#, c-format
-msgid "Could not pause miner, manager could not be created, %s"
-msgstr "Ni mogoče narediti premora podatkovnega rudarjenja, upravljalnika ni bilo mogoče ustvariti: %s"
-
-#: ../src/tracker-control/tracker-control-miners.c:118
-#, c-format
-msgid "Attempting to pause miner '%s' with reason '%s'"
-msgstr "Poskus premora podatkovnega rudarjenja '%s' z razlogom '%s'"
-
-#: ../src/tracker-control/tracker-control-miners.c:126
-#: ../src/tracker-control/tracker-control-miners.c:132
-#, c-format
-msgid "Could not pause miner: %s"
-msgstr "Ni mogoče narediti premora podatkovnega rudarjenja: %s"
-
-#: ../src/tracker-control/tracker-control-miners.c:138
-#, c-format
-msgid "Cookie is %d"
-msgstr "Piškotek je %d"
-
-#: ../src/tracker-control/tracker-control-miners.c:145
-msgid "Press Ctrl+C to end pause"
-msgstr "Pritisnite Ctrl+C za končanje premora"
-
-#: ../src/tracker-control/tracker-control-miners.c:169
-#, c-format
-msgid "Could not resume miner, manager could not be created, %s"
-msgstr "Podatkovnega rudarjenja ni mogoče nadaljevati, upravljalnika ni mogoče ustvariti: %s"
-
-#: ../src/tracker-control/tracker-control-miners.c:176
-#, c-format
-msgid "Attempting to resume miner %s with cookie %d"
-msgstr "Poskus nadaljevanja podatkovnega rudarjenja %s s piškotkom %d"
-
-#: ../src/tracker-control/tracker-control-miners.c:183
-#, c-format
-msgid "Could not resume miner: %s"
-msgstr "Podatkovnega rudarjenja ni mogoče nadaljevati: %s"
-
-#: ../src/tracker-control/tracker-control-miners.c:187
-#: ../src/tracker-utils/tracker-import.c:142
-#: ../src/tracker-utils/tracker-sparql.c:571
-msgid "Done"
-msgstr "Končano"
-
-#: ../src/tracker-control/tracker-control-miners.c:203
-#, c-format
-msgid "Could not reindex mimetypes, manager could not be created, %s"
-msgstr "Iz vrst mime ni mogoče znova pripraviti kazala, upravljalnika ni mogoče ustvariti, %s"
-
-#: ../src/tracker-control/tracker-control-miners.c:213
-msgid "Could not reindex mimetypes"
-msgstr "Iz vrst mime ni mogoče znova pripraviti kazala"
-
-#: ../src/tracker-control/tracker-control-miners.c:219
-msgid "Reindexing mime types was successful"
-msgstr "Ponovna priprava kazala vrst mime je bila uspešna"
-
-#: ../src/tracker-control/tracker-control-miners.c:235
-#, c-format
-msgid "Could not (re)index file, manager could not be created, %s"
-msgstr "Ni mogoče (ponovno) pripraviti kazala datoteke, upravljalnika ni mogoče ustvariti, %s "
-
-#: ../src/tracker-control/tracker-control-miners.c:248
-msgid "Could not (re)index file"
-msgstr "Ni mogoče (znova) pripraviti kazala datoteke"
-
-#: ../src/tracker-control/tracker-control-miners.c:254
-msgid "(Re)indexing file was successful"
-msgstr "(Ponovna) priprava kazala je bila uspešna"
-
-#: ../src/tracker-control/tracker-control-miners.c:272
-#, c-format
-msgid "Could not list miners, manager could not be created, %s"
-msgstr "Ni mogoče dobiti seznama podatkovnega rudarjenja, upravljalnika ni mogoče ustvariti, %s"
-
-#: ../src/tracker-control/tracker-control-miners.c:286
-#, c-format
-msgid "Found %d miner installed"
-msgid_plural "Found %d miners installed"
-msgstr[0] "Najdenih je %d nameščenih programov za podatkovno rudarjenje"
-msgstr[1] "Najden je %d nameščen program za podatkovno rudarjenje"
-msgstr[2] "Najdena sta %d nameščena programa za podatkovno rudarjenje"
-msgstr[3] "Najdeni so %d nameščeni programi za podatkovno rudarjenje"
-
-#: ../src/tracker-control/tracker-control-miners.c:309
-#, c-format
-msgid "Found %d miner running"
-msgid_plural "Found %d miners running"
-msgstr[0] "Najdenih je %d zagnanih programov za podatkovno rudarjenje"
-msgstr[1] "Najden je %d zagnan program za podatkovno rudarjenje"
-msgstr[2] "Najdena sta %d zagnana programa za podatkovno rudarjenje"
-msgstr[3] "Najdeni so %d zagnani programi za podatkovno rudarjenje"
-
-#: ../src/tracker-control/tracker-control-miners.c:341
-#, c-format
-msgid "Could not get pause details, manager could not be created, %s"
-msgstr "Ni mogoče dobiti podrobnosti premora, upravljalnika ni bilo mogoče ustvariti, %s"
-
-#: ../src/tracker-control/tracker-control-miners.c:351
-msgid "No miners are running"
-msgstr "Ni zagnanih programov za podatkovno rudarjenje"
-
-#: ../src/tracker-control/tracker-control-miners.c:400
-msgid "Reason"
-msgstr "Vzrok"
-
-#: ../src/tracker-control/tracker-control-miners.c:409
-msgid "No miners are paused"
-msgstr "Ni podatkovnega rudarjenja v premoru"
-
-#: ../src/tracker-control/tracker-control-miners.c:433
-msgid "You can not use miner pause and resume switches together"
-msgstr "Stikal premora in nadaljevanja podatkovnega rudarjenja ni mogoče uporabiti skupaj"
-
-#: ../src/tracker-control/tracker-control-miners.c:439
-msgid "You must provide the miner for pause or resume commands"
-msgstr "Za ukaze premora ali nadaljevanja je treba zagotoviti podatkovno rudarjenje"
-
-#: ../src/tracker-control/tracker-control-miners.c:445
-msgid "You must provide a pause or resume command for the miner"
-msgstr "Zagotoviti morate ukaz premora ali nadaljevanja za podatkovno rudarjenje"
-
-#: ../src/tracker-control/tracker-control-miners.c:493
-msgid "Miner options"
-msgstr "Možnosti rudarjenja"
-
-#: ../src/tracker-control/tracker-control-miners.c:494
-msgid "Show miner options"
-msgstr "Pokaži možnosti podatkovnega rudarjenja"
-
-#: ../src/tracker-control/tracker-control-status.c:50
-#: ../src/tracker-control/tracker-control-status.c:306
-msgid "Unavailable"
-msgstr "Ni na voljo"
-
-#. generic
-#: ../src/tracker-control/tracker-control-status.c:51
-msgid "Initializing"
-msgstr "Zaganjanje"
-
-#: ../src/tracker-control/tracker-control-status.c:53
-msgid "Fetching…"
-msgstr "Pridobivanje ..."
-
-#. miner/rss
-#: ../src/tracker-control/tracker-control-status.c:54
-#, c-format
-msgid "Crawling single directory '%s'"
-msgstr "Kopanje po eni mapi '%s'"
-
-#: ../src/tracker-control/tracker-control-status.c:55
-#, c-format
-msgid "Crawling recursively directory '%s'"
-msgstr "Rekurzivno kopanje po mapi '%s'"
-
-#: ../src/tracker-control/tracker-control-status.c:56
-msgid "Paused"
-msgstr "V premoru"
-
-#: ../src/tracker-control/tracker-control-status.c:57
-msgid "Idle"
-msgstr "Nedejavno"
-
-#: ../src/tracker-control/tracker-control-status.c:62
-msgid "Show current status"
-msgstr "Pokaži trenutno stanje"
-
-#: ../src/tracker-control/tracker-control-status.c:66
-msgid "Follow status changes as they happen"
-msgstr "Sledi spremembam stanja, ko se zgodijo"
-
-#: ../src/tracker-control/tracker-control-status.c:70
-msgid "List common statuses for miners and the store"
-msgstr "Našteje pogosta stanja za programe podatkovnega rudarjenja in shrambo"
-
-#: ../src/tracker-control/tracker-control-status.c:141
-#, c-format
-msgid "Could not get status from miner: %s"
-msgstr "Ni mogoče dobiti stanja podatkovnega rudarjenja: %s"
-
-#. Translators: %s is a time string
-#: ../src/tracker-control/tracker-control-status.c:203
-#, c-format
-msgid "%s remaining"
-msgstr "%s preostalo"
-
-#: ../src/tracker-control/tracker-control-status.c:206
-msgid "unknown time left"
-msgstr "neznan preostali čas"
-
-#. Work out lengths for output spacing
-#: ../src/tracker-control/tracker-control-status.c:219
-#: ../src/tracker-control/tracker-control-status.c:551
-msgid "PAUSED"
-msgstr "V PREMORU"
-
-#: ../src/tracker-control/tracker-control-status.c:236
-msgid "Not running or is a disabled plugin"
-msgstr "Ne teče ali pa je onemogočen vstavek"
-
-#: ../src/tracker-control/tracker-control-status.c:522
-msgid "Common statuses include"
-msgstr "Pogosta stanja vključujejo"
-
-#: ../src/tracker-control/tracker-control-status.c:540
-#, c-format
-msgid "Could not get status, manager could not be created, %s"
-msgstr "Ni mogoče dobiti stanja, upravljalnika ni mogoče ustvariti, %s"
-
-#. Display states
-#: ../src/tracker-control/tracker-control-status.c:561
-msgid "Store"
-msgstr "Shrani"
-
-#: ../src/tracker-control/tracker-control-status.c:682
-msgid "Status options"
-msgstr "Možnosti stanja"
-
-#: ../src/tracker-control/tracker-control-status.c:683
-msgid "Show status options"
-msgstr "Pokaži možnosti stanja"
-
-#. Translators: this messagge will apper immediately after the
-#. usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>
 #: ../src/tracker-utils/tracker-import.c:75
 msgid "- Import data using Turtle files"
 msgstr "- Uvozi podatke z datotekami Turtle"
@@ -1860,11 +1904,11 @@ msgstr "- Uvozi podatke z datotekami Turtle"
 msgid "One or more files have not been specified"
 msgstr "Ena ali več datotek ni bilo navedenih"
 
-#: ../src/tracker-utils/tracker-import.c:126
+#: ../src/tracker-utils/tracker-import.c:122
 msgid "Importing Turtle file"
 msgstr "Uvažanje datoteke Turtle"
 
-#: ../src/tracker-utils/tracker-import.c:135
+#: ../src/tracker-utils/tracker-import.c:131
 msgid "Unable to import Turtle file"
 msgstr "Datoteke Turtle ni mogoče uvoziti"
 
@@ -1890,27 +1934,27 @@ msgstr "Predpone imenskega prostora niso bile vrnjene"
 msgid "- Get all information about one or more files"
 msgstr "- Pridobi vse podatke o eni ali več datotekah"
 
-#: ../src/tracker-utils/tracker-info.c:382
+#: ../src/tracker-utils/tracker-info.c:378
 msgid "Querying information for entity"
 msgstr "Poizvedba podatkov za entiteto"
 
-#: ../src/tracker-utils/tracker-info.c:403
+#: ../src/tracker-utils/tracker-info.c:399
 msgid "Unable to retrieve URN for URI"
 msgstr "Ni mogoče pridobiti URN za URI"
 
-#: ../src/tracker-utils/tracker-info.c:413
-#: ../src/tracker-utils/tracker-info.c:448
+#: ../src/tracker-utils/tracker-info.c:409
+#: ../src/tracker-utils/tracker-info.c:444
 msgid "Unable to retrieve data for URI"
 msgstr "Podatkov za URI ni mogoče pridobiti"
 
-#: ../src/tracker-utils/tracker-info.c:457
+#: ../src/tracker-utils/tracker-info.c:453
 msgid "No metadata available for that URI"
 msgstr "Za URI ni razpoložljivih metapodakov"
 
-#: ../src/tracker-utils/tracker-info.c:462
+#: ../src/tracker-utils/tracker-info.c:458
 #: ../src/tracker-utils/tracker-search.c:1348
-#: ../src/tracker-utils/tracker-sparql.c:613
-#: ../utils/tracker-sql/tracker-sql.c:171
+#: ../src/tracker-utils/tracker-sparql.c:609
+#: ../utils/tracker-sql/tracker-sql.c:168
 msgid "Results"
 msgstr "Rezultati"
 
@@ -2035,13 +2079,13 @@ msgstr "Ni najdenih stikov"
 
 #: ../src/tracker-utils/tracker-search.c:292
 #: ../src/tracker-utils/tracker-search.c:305
-msgid "No Name"
+msgid "No name"
 msgstr "Brez imena"
 
 #: ../src/tracker-utils/tracker-search.c:293
 #: ../src/tracker-utils/tracker-search.c:306
-msgid "No Address"
-msgstr "Brez naslova"
+msgid "No E-mail address"
+msgstr "Ni elektronskega naslova"
 
 #: ../src/tracker-utils/tracker-search.c:340
 msgid "No emails were found"
@@ -2121,12 +2165,12 @@ msgstr "To pomeni, da morata biti v primeru iskanja za 'foo' in 'bar' prisotna O
 msgid "Search terms are missing"
 msgstr "Iskalni izrazi manjkajo"
 
-#: ../src/tracker-utils/tracker-search.c:1502
+#: ../src/tracker-utils/tracker-search.c:1498
 #, c-format
 msgid "Search term '%s' is a stop word."
 msgstr "Iskani izraz '%s' je zaustavitvena beseda."
 
-#: ../src/tracker-utils/tracker-search.c:1513
+#: ../src/tracker-utils/tracker-search.c:1509
 #, c-format
 msgid "Stop words are common words which may be ignored during the indexing process."
 msgstr "Zaustavitvene besede so pogoste besede, ki so lahko med izgradnjo kazala prezrte."
@@ -2193,7 +2237,7 @@ msgid "No namespace prefixes were found"
 msgstr "Predpon imenskega prostora ni mogoče najti"
 
 #: ../src/tracker-utils/tracker-sparql.c:221
-#: ../src/tracker-utils/tracker-stats.c:123
+#: ../src/tracker-utils/tracker-stats.c:119
 #: ../src/tracker-utils/tracker-tag.c:370
 #: ../src/tracker-utils/tracker-tag.c:494
 #: ../src/tracker-utils/tracker-tag.c:866
@@ -2214,104 +2258,104 @@ msgstr "Zagotoviti je treba argument"
 msgid "File and query can not be used together"
 msgstr "Datoteke in poizvedbe ni mogoče uporabiti skupaj"
 
-#: ../src/tracker-utils/tracker-sparql.c:305
+#: ../src/tracker-utils/tracker-sparql.c:301
 msgid "Could not list classes"
 msgstr "Razredov ni mogoče izpisati"
 
-#: ../src/tracker-utils/tracker-sparql.c:313
+#: ../src/tracker-utils/tracker-sparql.c:309
 msgid "No classes were found"
 msgstr "Razredov ni mogoče najti"
 
-#: ../src/tracker-utils/tracker-sparql.c:313
-#: ../src/tracker-utils/tracker-sparql.c:500
+#: ../src/tracker-utils/tracker-sparql.c:309
+#: ../src/tracker-utils/tracker-sparql.c:496
 msgid "Classes"
 msgstr "Razredi"
 
-#: ../src/tracker-utils/tracker-sparql.c:329
+#: ../src/tracker-utils/tracker-sparql.c:325
 msgid "Could not list class prefixes"
 msgstr "Predpon razredov ni mogoče izpisati"
 
-#: ../src/tracker-utils/tracker-sparql.c:337
+#: ../src/tracker-utils/tracker-sparql.c:333
 msgid "No class prefixes were found"
 msgstr "Predpon razredov ni mogoče najti"
 
-#: ../src/tracker-utils/tracker-sparql.c:337
+#: ../src/tracker-utils/tracker-sparql.c:333
 msgid "Prefixes"
 msgstr "Predpona"
 
-#: ../src/tracker-utils/tracker-sparql.c:357
+#: ../src/tracker-utils/tracker-sparql.c:353
 msgid "Could not find property for class prefix, e.g. :Resource in 'rdfs:Resource'"
 msgstr "Ni mogoče najti lastnostii za predpono razreda, na primer :Resource v 'rdfs:Resource'"
 
-#: ../src/tracker-utils/tracker-sparql.c:396
+#: ../src/tracker-utils/tracker-sparql.c:392
 msgid "Could not list properties"
 msgstr "Lastnosti ni mogoče izpisati"
 
-#: ../src/tracker-utils/tracker-sparql.c:404
+#: ../src/tracker-utils/tracker-sparql.c:400
 msgid "No properties were found"
 msgstr "Lastnosti ni mogoče najti"
 
-#: ../src/tracker-utils/tracker-sparql.c:432
+#: ../src/tracker-utils/tracker-sparql.c:428
 msgid "Could not find notify classes"
 msgstr "Ni mogoče najti razredov obvestil"
 
-#: ../src/tracker-utils/tracker-sparql.c:440
+#: ../src/tracker-utils/tracker-sparql.c:436
 msgid "No notifies were found"
 msgstr "Ni najdenih obvestil"
 
-#: ../src/tracker-utils/tracker-sparql.c:440
+#: ../src/tracker-utils/tracker-sparql.c:436
 msgid "Notifies"
 msgstr "Obvestila"
 
-#: ../src/tracker-utils/tracker-sparql.c:466
+#: ../src/tracker-utils/tracker-sparql.c:462
 msgid "Could not find indexed properties"
 msgstr "Ni mogoče najti lastnosti v kazalu"
 
-#: ../src/tracker-utils/tracker-sparql.c:474
+#: ../src/tracker-utils/tracker-sparql.c:470
 msgid "No indexes were found"
 msgstr "Kazal ni bilo mogoče najti"
 
-#: ../src/tracker-utils/tracker-sparql.c:474
+#: ../src/tracker-utils/tracker-sparql.c:470
 msgid "Indexes"
 msgstr "Kazala"
 
-#: ../src/tracker-utils/tracker-sparql.c:492
+#: ../src/tracker-utils/tracker-sparql.c:488
 msgid "Could not search classes"
 msgstr "Ni mogoče iskati razredov"
 
-#: ../src/tracker-utils/tracker-sparql.c:500
+#: ../src/tracker-utils/tracker-sparql.c:496
 msgid "No classes were found to match search term"
 msgstr "Ni mogoče najti razredov za skladanje iskalnega niza"
 
-#: ../src/tracker-utils/tracker-sparql.c:515
+#: ../src/tracker-utils/tracker-sparql.c:511
 msgid "Could not search properties"
 msgstr "Ni mogoče iskati lastnosti"
 
-#: ../src/tracker-utils/tracker-sparql.c:523
+#: ../src/tracker-utils/tracker-sparql.c:519
 msgid "No properties were found to match search term"
 msgstr "Ni mogoče najti lastnosti za skladanje iskalnega niza"
 
-#: ../src/tracker-utils/tracker-sparql.c:533
-#: ../utils/tracker-sql/tracker-sql.c:106
+#: ../src/tracker-utils/tracker-sparql.c:529
+#: ../utils/tracker-sql/tracker-sql.c:103
 msgid "Could not get UTF-8 path from path"
 msgstr "Iz poti ni mogoče dobiti poti UTF-8 "
 
-#: ../src/tracker-utils/tracker-sparql.c:545
-#: ../utils/tracker-sql/tracker-sql.c:117
+#: ../src/tracker-utils/tracker-sparql.c:541
+#: ../utils/tracker-sql/tracker-sql.c:114
 msgid "Could not read file"
 msgstr "Ni mogoče prebrati datoteke"
 
-#: ../src/tracker-utils/tracker-sparql.c:564
+#: ../src/tracker-utils/tracker-sparql.c:560
 msgid "Could not run update"
 msgstr "Posodobitve ni mogoče zagnati"
 
-#: ../src/tracker-utils/tracker-sparql.c:606
-#: ../utils/tracker-sql/tracker-sql.c:164
-#: ../utils/tracker-sql/tracker-sql.c:197
+#: ../src/tracker-utils/tracker-sparql.c:602
+#: ../utils/tracker-sql/tracker-sql.c:161
+#: ../utils/tracker-sql/tracker-sql.c:194
 msgid "Could not run query"
 msgstr "Poizvedbe ni mogoče zagnati"
 
-#: ../src/tracker-utils/tracker-sparql.c:613
+#: ../src/tracker-utils/tracker-sparql.c:609
 msgid "No results found matching your query"
 msgstr "Ni zadetkov skladnih s poizvedbo"
 
@@ -2321,15 +2365,15 @@ msgstr "Ni zadetkov skladnih s poizvedbo"
 msgid " - Show statistics for all Nepomuk defined ontology classes"
 msgstr " - Pokaže statistiko vseh z Nepomuk določenih ontolognih razredov"
 
-#: ../src/tracker-utils/tracker-stats.c:102
+#: ../src/tracker-utils/tracker-stats.c:98
 msgid "Could not get Tracker statistics"
 msgstr "Ni mogoče dobiti statistike Trackerja"
 
-#: ../src/tracker-utils/tracker-stats.c:109
+#: ../src/tracker-utils/tracker-stats.c:105
 msgid "No statistics available"
 msgstr "Statistika ni na voljo"
 
-#: ../src/tracker-utils/tracker-stats.c:113
+#: ../src/tracker-utils/tracker-stats.c:109
 msgid "Statistics:"
 msgstr "Statistika:"
 
@@ -2396,10 +2440,6 @@ msgstr "Oznake (prikazane po imenu)"
 msgid "No files were modified"
 msgstr "Nobena datoteka ni bila spremenjena"
 
-#: ../src/tracker-utils/tracker-tag.c:627
-msgid "Could not add tag"
-msgstr "Ni mogoče dodati oznake"
-
 #: ../src/tracker-utils/tracker-tag.c:643
 msgid "Tag was added successfully"
 msgstr "Oznaka je bila uspešno dodana"
@@ -2427,10 +2467,6 @@ msgstr "Ni mogoče najti oznak s tem imenom"
 #: ../src/tracker-utils/tracker-tag.c:757
 msgid "None of the files had this tag set"
 msgstr "Nobena od datotek ni imela te oznake"
-
-#: ../src/tracker-utils/tracker-tag.c:803
-msgid "Could not remove tag"
-msgstr "Ni mogoče odstraniti oznake"
 
 #: ../src/tracker-utils/tracker-tag.c:810
 msgid "Tag was removed successfully"
@@ -2471,7 +2507,7 @@ msgstr "Možnost --description je mogoče uporabiti le skupaj z --add"
 #. Translators: this messagge will apper immediately after the
 #. * usage string - Usage: COMMAND <THIS_MESSAGE>
 #.
-#: ../src/tracker-writeback/tracker-main.c:102
+#: ../src/tracker-writeback/tracker-main.c:100
 msgid "- start the tracker writeback service"
 msgstr "- zažene program s podporo zamika zapisovanja"
 
@@ -2483,13 +2519,25 @@ msgstr "Shranjene poizvedbe"
 msgid "- Query or update using SQL"
 msgstr "- Poizvedba ali posodobitev s SQL"
 
-#: ../utils/tracker-sql/tracker-sql.c:145
+#: ../utils/tracker-sql/tracker-sql.c:142
 msgid "Failed to initialize data manager"
 msgstr "Začenjanje upravljalnika podatkov je spodletelo"
 
-#: ../utils/tracker-sql/tracker-sql.c:205
+#: ../utils/tracker-sql/tracker-sql.c:202
 msgid "Empty result set"
 msgstr "Prazen niz rezultatov"
+
+#~ msgid "Filter by tags"
+#~ msgstr " Filtriraj po oznakah"
+
+#~ msgid "Show results by tags"
+#~ msgstr "Pokaži zadetke po oznakah"
+
+#~ msgid "No Name"
+#~ msgstr "Brez imena"
+
+#~ msgid "No Address"
+#~ msgstr "Brez naslova"
 
 #~ msgid "%d/20"
 #~ msgstr "%d/20"

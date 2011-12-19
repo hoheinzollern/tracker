@@ -32,6 +32,26 @@
 
 G_BEGIN_DECLS
 
+/**
+ * TrackerModuleThreadAwareness:
+ * @TRACKER_MODULE_NONE: Extractions are completed in the main event
+ * loop.
+ * @TRACKER_MODULE_MAIN_THREAD: Extractions will be dispatched in the
+ * main thread.
+ * @TRACKER_MODULE_SINGLE_THREAD: Extractions will be dispatched in a
+ * separate thread which is not the main thread. This means a new
+ * thread is created and used for all extractions with this value.
+ * @TRACKER_MODULE_MULTI_THREAD: A thread pool is used for all
+ * extractions of this module. This requires that the module is thread
+ * aware.
+ *
+ * Enumerates the different types of thread awareness which extractor
+ * modules need to be aware of. This is useful to know because it
+ * changes the way we queue and notify extractions with modules for
+ * metadata from files.
+ *
+ * Since: 0.14
+ **/
 typedef enum {
 	TRACKER_MODULE_NONE,
 	TRACKER_MODULE_MAIN_THREAD,
@@ -57,7 +77,8 @@ GModule * tracker_extract_module_manager_get_for_mimetype    (const gchar       
 gboolean  tracker_extract_module_manager_mimetype_is_handled (const gchar                *mimetype);
 
 
-TrackerMimetypeInfo * tracker_extract_module_manager_get_mimetype_handlers (const gchar *mimetype);
+TrackerMimetypeInfo * tracker_extract_module_manager_get_mimetype_handlers  (const gchar *mimetype);
+GStrv                 tracker_extract_module_manager_get_fallback_rdf_types (const gchar *mimetype);
 
 GModule * tracker_mimetype_info_get_module (TrackerMimetypeInfo          *info,
                                             TrackerExtractMetadataFunc   *extract_func,

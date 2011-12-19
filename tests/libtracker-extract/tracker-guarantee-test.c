@@ -41,19 +41,19 @@ TestCase test_cases_title [] = {
         { NULL, NULL, NULL}
 };
 
-
 /*
  * @uri of the file that is being processed
  * @value is the title returned by the extractor
  * @expected can be either the title of the extractor (if not NULL or empty) or calculated from the filename
  */
-void
+static void
 internal_test_title (const gchar *uri,
                      const gchar *value,
                      const gchar *expected)
 {
         TrackerSparqlBuilder *builder;
         gchar                *sparql;
+        gchar                *title_guaranteed;
 
         builder = tracker_sparql_builder_new_update ();
         tracker_sparql_builder_insert_open (builder, "test");
@@ -61,7 +61,8 @@ internal_test_title (const gchar *uri,
         g_assert (tracker_guarantee_title_from_file (builder, 
                                                      "nie:title",
                                                      value,
-                                                     uri));
+                                                     uri,
+                                                     &title_guaranteed));
         tracker_sparql_builder_insert_close (builder);
 
         sparql = g_strdup_printf ("INSERT INTO <test> {\n<test://resource> nie:title \"%s\" .\n}\n",
@@ -70,11 +71,15 @@ internal_test_title (const gchar *uri,
                          ==,
                          tracker_sparql_builder_get_result (builder));
 
+        g_assert_cmpstr (title_guaranteed,
+                         ==,
+                         expected);
+
         g_object_unref (builder);
         g_free (sparql);
 }
 
-void
+static void
 internal_test_date (const gchar *uri,
                     const gchar *value)
 {
@@ -94,8 +99,8 @@ internal_test_date (const gchar *uri,
         g_object_unref (builder);
 }
 
-void
-test_guarantee_title ()
+static void
+test_guarantee_title (void)
 {
         int i;
 
@@ -112,16 +117,17 @@ test_guarantee_title ()
 #endif
 }
 
-void
-test_guarantee_date ()
+static void
+test_guarantee_date (void)
 {
+#ifdef GUARANTEE_METADATA
         GFile *f;
         gchar *uri;
+#endif
 
         internal_test_date ("file:///does/not/matter/here", "2011-10-10T12:13:14Z0300");
 
 #ifdef GUARANTEE_METADATA        
-        
         f = g_file_new_for_path (TOP_SRCDIR "/tests/libtracker-extract/guarantee-mtime-test.txt");
         uri = g_file_get_uri (f);
         

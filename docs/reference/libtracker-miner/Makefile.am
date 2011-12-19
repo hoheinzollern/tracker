@@ -9,7 +9,7 @@ DOC_MODULE=libtracker-miner
 DOC_MAIN_SGML_FILE=libtracker-miner-docs.sgml
 
 # Extra options to supply to gtkdoc-scan
-# SCAN_OPTIONS=--deprecated-guards="G_GNUC_DEPRECATED"
+SCAN_OPTIONS=--deprecated-guards="TRACKER_DISABLE_DEPRECATED"
 
 # Extra options to pass to gtkdoc-scangobj
 # SCANGOBJ_OPTIONS=--type-init-func="gtk_type_init(0)"
@@ -25,6 +25,8 @@ CFILE_GLOB=$(top_srcdir)/src/libtracker-miner/*.c
 IGNORE_HFILES=                                         \
 	tracker-crawler.h                              \
 	tracker-dbus.h                                 \
+	tracker-file-notifier.h                        \
+	tracker-file-system.h                          \
 	tracker-marshal.h                              \
 	tracker-miner-client.h                         \
 	tracker-miner-dbus.h                           \
@@ -35,6 +37,9 @@ IGNORE_HFILES=                                         \
 	tracker-miner-web-glue.h                       \
 	tracker-miner-web-glue.h                       \
 	tracker-monitor.h                              \
+	tracker-priority-queue.h                       \
+	tracker-sparql-buffer.h                        \
+	tracker-task-pool.h                            \
 	tracker-utils.h
 
 # CFLAGS and LDFLAGS for compiling scan program. Only needed

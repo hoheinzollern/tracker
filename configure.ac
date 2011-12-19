@@ -247,7 +247,6 @@ PKG_CHECK_MODULES(LIBTRACKER_EXTRACT, [$LIBTRACKER_EXTRACT_REQUIRED])
 # Check requirements for libtracker-fts
 LIBTRACKER_FTS_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
                          gio-unix-2.0 >= $GLIB_REQUIRED
-                         gthread-2.0  >= $GLIB_REQUIRED
                          sqlite3      >= $SQLITE_REQUIRED"
 
 PKG_CHECK_MODULES(LIBTRACKER_FTS, [$LIBTRACKER_FTS_REQUIRED])
@@ -268,7 +267,6 @@ PKG_CHECK_MODULES(LIBTRACKER_SPARQL, [$LIBTRACKER_SPARQL_REQUIRED])
 # Check requirements for tracker-control
 TRACKER_CONTROL_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
                           gio-unix-2.0 >= $GLIB_REQUIRED
-                          gthread-2.0  >= $GLIB_REQUIRED
                           uuid"
 
 PKG_CHECK_MODULES(TRACKER_CONTROL, [$TRACKER_CONTROL_REQUIRED])
@@ -276,7 +274,6 @@ PKG_CHECK_MODULES(TRACKER_CONTROL, [$TRACKER_CONTROL_REQUIRED])
 # Check requirements for tracker-explorer
 TRACKER_EXPLORER_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
                            gio-unix-2.0 >= $GLIB_REQUIRED
-                           gthread-2.0  >= $GLIB_REQUIRED
                            gmodule-2.0  >= $GLIB_REQUIRED
                            gtk+-3.0     >= $GTK_REQUIRED
 			   gee-1.0      >= $GEE_REQUIRED"
@@ -295,7 +292,6 @@ PKG_CHECK_MODULES(TRACKER_RESDUMP, [$TRACKER_RESDUMP_REQUIRED],
 # Check requirements for tracker-store
 TRACKER_STORE_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
                         gio-unix-2.0 >= $GLIB_REQUIRED
-                        gthread-2.0  >= $GLIB_REQUIRED
                         gmodule-2.0  >= $GLIB_REQUIRED
                         sqlite3      >= $SQLITE_REQUIRED"
 
@@ -306,7 +302,6 @@ TRACKER_STORE_LIBS="$TRACKER_STORE_LIBS -lz -lm"
 # Check requirements for tracker-extract
 TRACKER_EXTRACT_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
                           gio-unix-2.0 >= $GLIB_REQUIRED
-                          gthread-2.0  >= $GLIB_REQUIRED
                           gmodule-2.0  >= $GLIB_REQUIRED"
 
 PKG_CHECK_MODULES(TRACKER_EXTRACT, [$TRACKER_EXTRACT_REQUIRED])
@@ -319,7 +314,6 @@ PKG_CHECK_MODULES(TRACKER_EXTRACT_MODULES, [$TRACKER_EXTRACT_MODULES_REQUIRED])
 # Check requirements for tracker-writeback
 TRACKER_WRITEBACK_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
                             gio-unix-2.0 >= $GLIB_REQUIRED
-                            gthread-2.0  >= $GLIB_REQUIRED
                             gmodule-2.0  >= $GLIB_REQUIRED"
 
 PKG_CHECK_MODULES(TRACKER_WRITEBACK, [$TRACKER_WRITEBACK_REQUIRED])
@@ -327,7 +321,6 @@ PKG_CHECK_MODULES(TRACKER_WRITEBACK, [$TRACKER_WRITEBACK_REQUIRED])
 # Check requirements for tracker-miner-fs
 TRACKER_MINER_FS_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
                            gio-unix-2.0 >= $GLIB_REQUIRED
-                           gthread-2.0  >= $GLIB_REQUIRED
                            gmodule-2.0  >= $GLIB_REQUIRED"
 
 PKG_CHECK_MODULES(TRACKER_MINER_FS, [$TRACKER_MINER_FS_REQUIRED])
@@ -430,15 +423,13 @@ TRACKER_MINER_FLICKR_LIBS="$TRACKER_MINER_FLICKR_LIBS -lz -lm"
 
 # Check requirements for tracker-utils
 TRACKER_UTILS_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
-                        gio-unix-2.0 >= $GLIB_REQUIRED
-                        gthread-2.0  >= $GLIB_REQUIRED"
+                        gio-unix-2.0 >= $GLIB_REQUIRED"
 
 PKG_CHECK_MODULES(TRACKER_UTILS, [$TRACKER_UTILS_REQUIRED])
 
 # Check requirements for tracker-needle
 TRACKER_NEEDLE_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
                          gio-unix-2.0 >= $GLIB_REQUIRED
-                         gthread-2.0  >= $GLIB_REQUIRED
                          gmodule-2.0  >= $GLIB_REQUIRED
                          gtk+-3.0     >= $GTK_REQUIRED
 			 unity	      >= $UNITY_REQUIRED"
@@ -450,7 +441,6 @@ PKG_CHECK_MODULES(TRACKER_NEEDLE, [$TRACKER_NEEDLE_REQUIRED],
 # Check requirements for tracker-preferences
 TRACKER_PREFERENCES_REQUIRED="glib-2.0       >= $GLIB_REQUIRED
                               gio-unix-2.0   >= $GLIB_REQUIRED
-                              gthread-2.0    >= $GLIB_REQUIRED
                               gmodule-2.0    >= $GLIB_REQUIRED
                               gtk+-3.0       >= $GTK_REQUIRED"
 
@@ -461,7 +451,6 @@ PKG_CHECK_MODULES(TRACKER_PREFERENCES, [$TRACKER_PREFERENCES_REQUIRED],
 # Check requirements for tracker-search-bar
 TRACKER_SEARCH_BAR_REQUIRED="glib-2.0       >= $GLIB_REQUIRED
                              gio-unix-2.0   >= $GLIB_REQUIRED
-                             gthread-2.0    >= $GLIB_REQUIRED
                              gmodule-2.0    >= $GLIB_REQUIRED
                              gtk+-3.0       >= $GTK_REQUIRED
                              gdk-pixbuf-2.0 >= $GDKPIXBUF_REQUIRED
@@ -820,8 +809,6 @@ AM_CONDITIONAL(HAVE_HAL, test "x$have_hal" = "xyes")
 # By default, AUTO with this order of preference:
 #  1)  libunistring
 #  2)  libicu
-#
-# Note that glib can only be used if explicitly requested for it.
 ##################################################################
 
 # Check for libunistring...
@@ -842,16 +829,10 @@ AC_CHECK_HEADER(unicode/ubrk.h,
 LIBICU_CFLAGS=""
 LIBICU_LIBS="-licuuc -licui18n"
 
-# Check for Pango...
-PKG_CHECK_MODULES(PANGO,
-                  [pango >= $PANGO_REQUIRED],
-                  [have_pango=yes],
-                  [have_pango=no])
-
 # Configure option
 AC_ARG_WITH([unicode-support],
             AS_HELP_STRING([--with-unicode-support],
-                           [Unicode support library? (libunistring|libicu|glib) [[default=auto (!glib)]]]),,
+                           [Unicode support library? (libunistring|libicu) [[default=auto]]]),,
             [with_unicode_support=auto])
 
 # If auto, decide ourselves
@@ -862,10 +843,7 @@ if test "x$with_unicode_support" = "xauto"; then
       if test "x$have_libicu" = "xyes"; then
          with_unicode_support=libicu
       else
-         AC_MSG_ERROR([Couldn't find neither libunistring nor libicu. You can still compile tracker
-                       without any of these two, using glib instead, but be warned that the FTS parsing
-                       performance will be much worse. If you still want to use glib as Unicode support
-                       library, enable it with an explicit --with-unicode-support=glib])
+         AC_MSG_ERROR([Couldn't find neither libunistring nor libicu])
       fi
    fi
 fi
@@ -892,14 +870,6 @@ case "x$with_unicode_support" in
           AC_DEFINE(HAVE_LIBICU, [1], [libicu Unicode support library])
         else
           AC_MSG_ERROR([Couldn't find libicu])
-        fi
-     ;;
-     # Use glib/pango
-     "xglib")
-        UNICODE_SUPPORT_CFLAGS=$PANGO_CFLAGS
-        UNICODE_SUPPORT_LIBS=$PANGO_LIBS
-        if test "x$have_pango" != "xyes"; then
-          AC_MSG_ERROR([Couldn't find pango])
         fi
      ;;
      # Invalid option value
@@ -1526,6 +1496,13 @@ AC_ARG_ENABLE(libxml2,
                              [disable HTML/XML extractors [[default=yes]]]),,
               [enable_libxml2=yes])
 
+# Force libxml requirement for HAVE_MAEMO,
+# given the miner-fs needs it for the userguide extraction.
+if test "x$enable_maemo" = "xyes" ; then
+  enable_libxml2="yes"
+fi
+
+
 if test "x$enable_libxml2" != "xno"; then
    PKG_CHECK_MODULES(LIBXML2,
                      [libxml-2.0 >= $LIBXML2_REQUIRED],
@@ -1567,7 +1544,7 @@ AC_ARG_ENABLE(qt,
                              [enable Qt support, (MP3 album art) [[default=auto]]]),,
               [enable_qt=auto])
 
-selected_for_albumart="no  (disabled)"
+selected_for_media_art="no  (disabled)"
 
 ##################################################################
 # Check for tracker-extract: Choose between GdkPixbuf/Qt
@@ -1584,7 +1561,7 @@ if test "x$enable_qt" != "xno" && test "x$enable_gdkpixbuf" != "xyes"; then
 
    if test "x$have_qt" = "xyes"; then
       AC_DEFINE(HAVE_QT, [], [Define if we have Qt])
-      selected_for_albumart="yes (qt)"
+      selected_for_media_art="yes (qt)"
    fi
 else
    have_qt="no  (disabled)"
@@ -1609,7 +1586,7 @@ if test "x$enable_gdkpixbuf" != "xno" && test "x$enable_quill" != "xyes"; then
 
    if test "x$have_gdkpixbuf" = "xyes"; then
       AC_DEFINE(HAVE_GDKPIXBUF, [], [Define if we have GdkPixbuf])
-      selected_for_albumart="yes (GdkPixbuf)"
+      selected_for_media_art="yes (GdkPixbuf)"
    fi
 else
    have_gdkpixbuf="no  (disabled)"
@@ -2351,7 +2328,7 @@ Metadata Extractors:
 	Support XML / HTML:                     $have_libxml2
 	Support embedded / sidecar XMP:         $have_exempi
 	Support generic media formats:          $have_generic_media_handler ($have_generic_media_handler_app) (backend: $gstreamer_backend)
-	Support MP3 album art:                  $selected_for_albumart
+	Support media art processing:           $selected_for_media_art
 	Support cue sheet parsing:              $have_libcue
 	Support playlists (w/ Totem):           $have_playlist
 

@@ -30,7 +30,7 @@ libtracker_common_la_SOURCES = \
 	tracker-utils.c \
 	tracker-crc32.c \
 	tracker-locale.c \
-	tracker-albumart.c
+	tracker-media-art.c
 
 noinst_HEADERS = \
 	tracker-dbus.h \
@@ -49,7 +49,7 @@ noinst_HEADERS = \
 	tracker-utils.h \
 	tracker-crc32.h \
 	tracker-locale.h \
-	tracker-albumart.h
+	tracker-media-art.h
 
 if HAVE_TRACKER_FTS
 libtracker_common_la_SOURCES += tracker-language.c
@@ -66,7 +66,8 @@ libtracker_common_la_LDFLAGS = \
 
 libtracker_common_la_LIBADD = \
 	$(BUILD_LIBS) \
-	$(LIBTRACKER_COMMON_LIBS)
+	$(LIBTRACKER_COMMON_LIBS) \
+	-lm
 
 if HAVE_TRACKER_FTS
 libtracker_common_la_LIBADD += $(top_builddir)/src/libstemmer/libstemmer.la

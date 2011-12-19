@@ -38,7 +38,6 @@ G_BEGIN_DECLS
 #define TRACKER_MINER_MANAGER_ERROR tracker_miner_manager_error_quark ()
 
 typedef struct _TrackerMinerManager TrackerMinerManager;
-typedef struct _TrackerMinerManagerClass TrackerMinerManagerClass;
 
 /**
  * TrackerMinerManagerError:
@@ -77,7 +76,7 @@ struct _TrackerMinerManager {
  * @miner_deactivated: The deactivate for all miners which indicates
  * the miner is no longer available on d-bus.
  **/
-struct _TrackerMinerManagerClass {
+typedef struct {
 	GObjectClass parent_class;
 
 	void (* miner_progress)    (TrackerMinerManager *manager,
@@ -92,7 +91,7 @@ struct _TrackerMinerManagerClass {
 	                            const gchar         *miner_name);
 	void (* miner_deactivated) (TrackerMinerManager *manager,
 	                            const gchar         *miner_name);
-};
+} TrackerMinerManagerClass;
 
 GType                tracker_miner_manager_get_type           (void) G_GNUC_CONST;
 GQuark               tracker_miner_manager_error_quark        (void) G_GNUC_CONST;
@@ -124,9 +123,6 @@ gboolean             tracker_miner_manager_get_status         (TrackerMinerManag
                                                                gchar               **status,
                                                                gdouble              *progress,
                                                                gint                 *remaining_time);
-gboolean             tracker_miner_manager_ignore_next_update (TrackerMinerManager  *manager,
-                                                               const gchar          *miner,
-                                                               const gchar         **urls);
 const gchar *        tracker_miner_manager_get_display_name   (TrackerMinerManager  *manager,
                                                                const gchar          *miner);
 const gchar *        tracker_miner_manager_get_description    (TrackerMinerManager  *manager,
@@ -138,6 +134,12 @@ gboolean             tracker_miner_manager_reindex_by_mimetype (TrackerMinerMana
 gboolean             tracker_miner_manager_index_file          (TrackerMinerManager  *manager,
                                                                 GFile                *file,
                                                                 GError              **error);
+
+#ifndef TRACKER_DISABLE_DEPRECATED
+gboolean             tracker_miner_manager_ignore_next_update (TrackerMinerManager  *manager,
+                                                               const gchar          *miner,
+                                                               const gchar         **urls) G_GNUC_DEPRECATED;
+#endif /* TRACKER_DISABLE_DEPRECATED */
 
 G_END_DECLS
 

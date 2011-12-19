@@ -30,6 +30,7 @@
 #include <libtracker-sparql/tracker-sparql.h>
 
 #include "tracker-miner-object.h"
+#include "tracker-indexing-tree.h"
 
 #include "tracker-miner-common.h"
 
@@ -58,38 +59,21 @@ struct _TrackerMinerFS {
 /**
  * TrackerMinerFSClass:
  * @parent: parent object class
- * @check_file: Called when a file should be checked for further
- * processing.
- * @check_directory: Called when a directory should be checked for
- * further processing.
- * @check_directory_contents: Called when a directory should be
- * checked for further processing, based on the directory contents.
  * @process_file: Called when the metadata associated to a file is
  * requested.
  * @ignore_next_update_file: Called after a writeback event happens on
  * a file (deprecated since 0.12).
- * @monitor_directory: Called to check whether a directory should be
- * modified.
  * @finished: Called when all processing has been performed.
  * @process_file_attributes: Called when the metadata associated with
  * a file's attributes changes, for example, the mtime.
  * @writeback_file: Called when a file must be written back
  *
- * Prototype for the abstract class, @check_file, @check_directory,
- * @check_directory_contents, @process_file and @monitor_directory
- * must be implemented in the deriving class in order to actually
- * extract data.
+ * Prototype for the abstract class, @process_file must be implemented
+ * in the deriving class in order to actually extract data.
  **/
 typedef struct {
 	TrackerMinerClass parent;
 
-	gboolean (* check_file)               (TrackerMinerFS       *fs,
-	                                       GFile                *file);
-	gboolean (* check_directory)          (TrackerMinerFS       *fs,
-	                                       GFile                *file);
-	gboolean (* check_directory_contents) (TrackerMinerFS       *fs,
-	                                       GFile                *parent,
-	                                       GList                *children);
 	gboolean (* process_file)             (TrackerMinerFS       *fs,
 	                                       GFile                *file,
 	                                       TrackerSparqlBuilder *builder,
@@ -98,8 +82,6 @@ typedef struct {
 	                                       GFile                *file,
 	                                       TrackerSparqlBuilder *builder,
 	                                       GCancellable         *cancellable);
-	gboolean (* monitor_directory)        (TrackerMinerFS       *fs,
-	                                       GFile                *file);
 	void     (* finished)                 (TrackerMinerFS       *fs);
 	gboolean (* process_file_attributes)  (TrackerMinerFS       *fs,
 	                                       GFile                *file,
@@ -125,7 +107,7 @@ void                  tracker_miner_fs_check_file_with_priority (TrackerMinerFS 
                                                                  gboolean        check_parents);
 void                  tracker_miner_fs_check_directory_with_priority (TrackerMinerFS *fs,
                                                                       GFile          *file,
-	                                                              gint            priority,
+                                                                      gint            priority,
                                                                       gboolean        check_parents);
 void                  tracker_miner_fs_check_file           (TrackerMinerFS *fs,
                                                              GFile          *file,
@@ -167,6 +149,8 @@ void                  tracker_miner_fs_add_directory_without_parent (TrackerMine
                                                                      GFile          *file);
 void                  tracker_miner_fs_force_mtime_checking (TrackerMinerFS *fs,
                                                              GFile          *directory);
+
+TrackerIndexingTree * tracker_miner_fs_get_indexing_tree    (TrackerMinerFS *fs);
 
 G_END_DECLS
 

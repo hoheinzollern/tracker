@@ -3,10 +3,8 @@ include $(top_srcdir)/Makefile.decl
 libexec_PROGRAMS = tracker-miner-flickr
 
 AM_VALAFLAGS =                                         \
-	--thread                                       \
 	--pkg gio-2.0 --pkg rest-0.6 --pkg posix       \
 	$(BUILD_VALAFLAGS)                             \
-	$(top_srcdir)/src/vapi/glib-2.0-fixes.vapi     \
 	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-@TRACKER_API_VERSION@.vapi \
 	$(top_srcdir)/src/libtracker-miner/tracker-miner.vapi
 

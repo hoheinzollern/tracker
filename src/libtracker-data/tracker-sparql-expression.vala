@@ -322,8 +322,8 @@ class Tracker.Sparql.Expression : Object {
 			break;
 		case PropertyType.DATETIME:
 			// ISO 8601 format
-			sql.insert (begin, "strftime (\"%Y-%m-%dT%H:%M:%SZ\", ");
-			sql.append (", \"unixepoch\")");
+			sql.insert (begin, "SparqlFormatTime (");
+			sql.append (")");
 			break;
 		default:
 			// let sqlite convert the expression to string
@@ -632,7 +632,9 @@ class Tracker.Sparql.Expression : Object {
 			sql.append (" * 24 * 3600 + ");
 			sql.append (variable.get_extra_sql_expression ("localTime"));
 			sql.append ("- ");
+			sql.append ("CAST (");
 			sql.append (variable.sql_expression);
+			sql.append (" AS INTEGER)");
 			sql.append (")");
 
 			return PropertyType.INTEGER;
@@ -838,6 +840,8 @@ class Tracker.Sparql.Expression : Object {
 	}
 
 	internal string parse_string_literal (out PropertyType type = null) throws Sparql.Error {
+		type = PropertyType.STRING;
+
 		next ();
 		switch (last ()) {
 		case SparqlTokenType.STRING_LITERAL1:
@@ -889,12 +893,7 @@ class Tracker.Sparql.Expression : Object {
 
 			if (accept (SparqlTokenType.DOUBLE_CIRCUMFLEX)) {
 				// typed literal
-				var parsed_type = parse_type_uri ();
-				if (&type == null) {
-					// caller not interested in type
-				} else {
-					type = parsed_type;
-				}
+				type = parse_type_uri ();
 			}
 
 			return sb.str;
@@ -904,12 +903,7 @@ class Tracker.Sparql.Expression : Object {
 
 			if (accept (SparqlTokenType.DOUBLE_CIRCUMFLEX)) {
 				// typed literal
-				var parsed_type = parse_type_uri ();
-				if (&type == null) {
-					// caller not interested in type
-				} else {
-					type = parsed_type;
-				}
+				type = parse_type_uri ();
 			}
 
 			return result;

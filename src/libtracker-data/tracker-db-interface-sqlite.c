@@ -26,6 +26,7 @@
 #include <math.h>
 #include <errno.h>
 
+#include <libtracker-common/tracker-date-time.h>
 #include <libtracker-common/tracker-locale.h>
 
 #include <libtracker-sparql/tracker-sparql.h>
@@ -51,6 +52,13 @@
 #include "tracker-db-interface-sqlite.h"
 #include "tracker-db-manager.h"
 
+/* Since 2.30, g_atomic_int_add() is fully equivalente to g_atomic_int_exchange_and_add() */
+#if GLIB_CHECK_VERSION (2,30,0)
+#define ATOMIC_EXCHANGE_AND_ADD(a,v) g_atomic_int_add (a,v)
+#else
+#define ATOMIC_EXCHANGE_AND_ADD(a,v) g_atomic_int_exchange_and_add (a,v)
+#endif
+
 #define UNKNOWN_STATUS 0.5
 
 typedef struct {
@@ -71,7 +79,6 @@ struct TrackerDBInterface {
 	GSList *function_data;
 
 	/* Collation and locale change */
-	gpointer collator;
 	gpointer locale_notification_id;
 	gint collator_reset_requested;
 
@@ -400,6 +407,30 @@ function_sparql_uri_is_descendant (sqlite3_context *context,
 	}
 
 	sqlite3_result_int (context, match);
+}
+
+static void
+function_sparql_format_time (sqlite3_context *context,
+                             int              argc,
+                             sqlite3_value   *argv[])
+{
+	gdouble seconds;
+	gchar *str;
+
+	if (argc != 1) {
+		sqlite3_result_error (context, "Invalid argument count", -1);
+		return;
+	}
+
+	if (sqlite3_value_type (argv[0]) == SQLITE_NULL) {
+		sqlite3_result_null (context);
+		return;
+	}
+
+	seconds = sqlite3_value_double (argv[0]);
+	str = tracker_date_to_string (seconds);
+
+	sqlite3_result_text (context, str, -1, g_free);
 }
 
 static void
@@ -863,6 +894,10 @@ open_database (TrackerDBInterface  *db_interface,
 	                         db_interface, &function_sparql_case_fold,
 	                         NULL, NULL);
 
+	sqlite3_create_function (db_interface->db, "SparqlFormatTime", 1, SQLITE_ANY,
+	                         db_interface, &function_sparql_format_time,
+	                         NULL, NULL);
+
 	sqlite3_extended_result_codes (db_interface->db, 0);
 	sqlite3_busy_timeout (db_interface->db, 100000);
 }
@@ -1012,17 +1047,13 @@ tracker_db_interface_sqlite_reset_collator (TrackerDBInterface *db_interface)
 {
 	g_debug ("Resetting collator in db interface %p", db_interface);
 
-	if (db_interface->collator) {
-		tracker_collation_shutdown (db_interface->collator);
-	}
-
-	db_interface->collator = tracker_collation_init ();
 	/* This will overwrite any other collation set before, if any */
-	if (sqlite3_create_collation (db_interface->db,
-	                              TRACKER_COLLATION_NAME,
-	                              SQLITE_UTF8,
-	                              db_interface->collator,
-	                              tracker_collation_utf8) != SQLITE_OK)
+	if (sqlite3_create_collation_v2 (db_interface->db,
+	                                 TRACKER_COLLATION_NAME,
+	                                 SQLITE_UTF8,
+	                                 tracker_collation_init (),
+	                                 tracker_collation_utf8,
+	                                 tracker_collation_shutdown) != SQLITE_OK)
 	{
 		g_critical ("Couldn't set collation function: %s",
 		            sqlite3_errmsg (db_interface->db));
@@ -1064,10 +1095,6 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 
 	if (db_interface->locale_notification_id) {
 		tracker_locale_notify_remove (db_interface->locale_notification_id);
-	}
-
-	if (db_interface->collator) {
-		tracker_collation_shutdown (db_interface->collator);
 	}
 
 	G_OBJECT_CLASS (tracker_db_interface_parent_class)->finalize (object);
@@ -1335,7 +1362,7 @@ execute_stmt (TrackerDBInterface  *interface,
 
 	/* Statement is going to start, check if we got a request to reset the
 	 * collator, and if so, do it. */
-	if (g_atomic_int_exchange_and_add (&interface->n_active_cursors, 1) == 0 &&
+	if (ATOMIC_EXCHANGE_AND_ADD (&interface->n_active_cursors, 1) == 0 &&
 	    g_atomic_int_compare_and_exchange (&(interface->collator_reset_requested), TRUE, FALSE)) {
 		tracker_db_interface_sqlite_reset_collator (interface);
 	}
@@ -1712,7 +1739,7 @@ tracker_db_cursor_sqlite_new (sqlite3_stmt        *sqlite_stmt,
 	/* As soon as we create a cursor, check if we need a collator reset
 	 * and notify the iface about the new cursor */
 	iface = ref_stmt->db_interface;
-	if (g_atomic_int_exchange_and_add (&iface->n_active_cursors, 1) == 0 &&
+	if (ATOMIC_EXCHANGE_AND_ADD (&iface->n_active_cursors, 1) == 0 &&
 	    g_atomic_int_compare_and_exchange (&(iface->collator_reset_requested), TRUE, FALSE)) {
 		tracker_db_interface_sqlite_reset_collator (iface);
 	}
@@ -2096,4 +2123,3 @@ tracker_db_statement_sqlite_reset (TrackerDBStatement *stmt)
 	sqlite3_reset (stmt->stmt);
 	sqlite3_clear_bindings (stmt->stmt);
 }
-

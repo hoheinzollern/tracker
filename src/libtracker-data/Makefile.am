@@ -5,9 +5,8 @@ AM_VALAFLAGS =                                         \
 	--header tracker-sparql-query.h                \
 	--vapi tracker-sparql-query.vapi               \
 	--pkg gio-2.0                                  \
+	--pkg posix                                    \
 	$(BUILD_VALAFLAGS)                             \
-	$(top_srcdir)/src/vapi/posix.vapi              \
-	$(top_srcdir)/src/vapi/glib-2.0-fixes.vapi     \
 	$(top_srcdir)/src/libtracker-common/libtracker-common.vapi \
 	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi \
 	libtracker-data.vapi
@@ -49,7 +48,8 @@ libtracker_data_la_LIBADD =                            \
 	$(top_builddir)/src/gvdb/libgvdb.la \
 	$(top_builddir)/src/libtracker-common/libtracker-common.la \
 	$(BUILD_LIBS)                                  \
-	$(LIBTRACKER_DATA_LIBS)
+	$(LIBTRACKER_DATA_LIBS)                        \
+	-lm
 
 if HAVE_TRACKER_FTS
 libtracker_data_la_LIBADD +=                           \
