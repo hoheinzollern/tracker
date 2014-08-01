@@ -56,8 +56,8 @@ enum {
 };
 
 static TrackerConfigMigrationEntry migration[] = {
-	{ G_TYPE_INT, GROUP_JOURNAL, "JournalChunkSize", "journal-chunk-size" },
-	{ G_TYPE_STRING, GROUP_JOURNAL, "JournalRotateDestination", "journal-rotate-destination" },
+	{ G_TYPE_INT, GROUP_JOURNAL, "JournalChunkSize", "journal-chunk-size", FALSE, FALSE },
+	{ G_TYPE_STRING, GROUP_JOURNAL, "JournalRotateDestination", "journal-rotate-destination", FALSE, FALSE },
 };
 
 G_DEFINE_TYPE (TrackerDBConfig, tracker_db_config, G_TYPE_SETTINGS);
@@ -169,7 +169,7 @@ TrackerDBConfig *
 tracker_db_config_new (void)
 {
 	return g_object_new (TRACKER_TYPE_DB_CONFIG,
-	                     "schema", "org.freedesktop.Tracker.DB",
+	                     "schema-id", "org.freedesktop.Tracker.DB",
 	                     "path", "/org/freedesktop/tracker/db/",
 	                     NULL);
 }

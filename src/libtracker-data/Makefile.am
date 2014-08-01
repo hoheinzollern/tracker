@@ -1,5 +1,3 @@
-include $(top_srcdir)/Makefile.decl
-
 AM_VALAFLAGS =                                         \
 	--includedir=libtracker-data                   \
 	--header tracker-sparql-query.h                \
@@ -12,7 +10,7 @@ AM_VALAFLAGS =                                         \
 	libtracker-data.vapi
 
 AM_CPPFLAGS =                                          \
-	$(BUILD_CFLAGS)                                \
+	$(BUILD_VALACFLAGS)                            \
 	-I$(top_srcdir)/src                            \
 	-I$(top_builddir)/src                          \
 	-DSHAREDIR=\""$(datadir)"\"                    \
@@ -55,9 +53,6 @@ if HAVE_TRACKER_FTS
 libtracker_data_la_LIBADD +=                           \
 	$(top_builddir)/src/libtracker-fts/libtracker-fts.la
 endif
-
-libtracker_data_la_LDFLAGS =                           \
-	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
 noinst_HEADERS =                                       \
 	tracker-class.h                                \

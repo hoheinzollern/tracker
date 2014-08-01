@@ -17,6 +17,7 @@ config.*
 ABOUT-NLS
 aclocal.m4
 autom4te.cache
+build-aux
 ChangeLog
 INSTALL
 Makefile.in
@@ -39,5 +40,4 @@ stamp-h1
 tmpl
 tracker-*-client.h
 tracker-*-glue.h
-tracker-marshal.[ch]
 tracker-preferences.[ch]

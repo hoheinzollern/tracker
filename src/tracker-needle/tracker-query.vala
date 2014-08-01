@@ -129,9 +129,18 @@ public class Tracker.Query {
 
 		// DOCUMENTS
 		"WHERE {
-		  ?urn a nfo:Document ;
-		         nie:url ?tooltip .
-		  %s
+		  {
+		    ?urn nco:creator ?match
+		  } UNION {
+		    ?urn nco:publisher ?match
+		  } UNION {
+		    ?urn a nfo:Document .
+		    FILTER (! EXISTS { ?urn a nmo:Email } )
+		    ?match a nfo:Document
+		    FILTER (?urn = ?match)
+		  }
+		  %s .
+		  ?urn nie:url ?tooltip .
 		  OPTIONAL {
 		    ?urn nco:creator ?creator .
 		  }
@@ -167,6 +176,41 @@ public class Tracker.Query {
                          nfo:bookmarks ?bookmark .
 		  %s
 		}"
+	};
+
+	private string [] sort_clauses = {
+		// ALL
+		"DESC(nfo:fileLastModified(?urn)) DESC(nie:contentCreated(?urn)) ASC(nie:title(?urn))",
+
+		// CONTACTS
+		"ASC(nco:fullname(?urn))",
+
+		// APPLICATIONS
+		"ASC(nie:title(?urn)) ASC(nie:comment(?urn))",
+
+		// MUSIC
+		"DESC(nfo:fileLastModified(?urn)) ASC(nie:title(?urn))",
+
+		// IMAGES
+		"DESC(nfo:fileLastModified(?urn)) ASC(nie:title(?urn))",
+
+		// VIDEOS
+		"DESC(nfo:fileLastModified(?urn)) ASC(nie:title(?urn))",
+
+		// DOCUMENTS
+		"DESC(nfo:fileLastModified(?urn)) ASC(nie:title(?urn))",
+
+		// MAIL
+		"DESC(nmo:receivedDate(?urn)) ASC(nmo:messageSubject(?urn))",
+
+		// CALENDAR
+		"DESC(nie:contentCreated(?urn))",
+
+		// FOLDERS
+		"DESC(nfo:fileLastModified(?urn)) ASC(nie:title(?urn))",
+
+		// BOOKMARKS
+		"DESC(nie:contentLastModified(?urn)) ASC(nie:title(?urn))"
 	};
 
 	public string criteria { get; set; }
@@ -217,10 +261,11 @@ public class Tracker.Query {
 			return false;
 		}
 
-		if (query_type != Type.MUSIC && !(match_type == Match.NONE ||
-		                                  match_type == Match.FTS ||
-		                                  match_type == Match.TITLES)) {
-			critical ("You can not use a non-MUSIC query (%d) with INDIRECT matching (%d)", query_type, match_type);
+		if ((query_type != Type.MUSIC && query_type != Type.DOCUMENTS) &&
+			!(match_type == Match.NONE ||
+			  match_type == Match.FTS ||
+			  match_type == Match.TITLES)) {
+			critical ("You can not use a non-MUSIC or non-DOCUMENTS query (%d) with INDIRECT matching (%d)", query_type, match_type);
 			return false;
 		}
 
@@ -270,7 +315,15 @@ public class Tracker.Query {
 			}
 		}
 
-		query = "SELECT count(?urn) " + where_clauses[query_type].printf (match);
+		query  = "SELECT count(?urn)";
+
+		if (where_clauses[query_type].length > 0) {
+			query += " " + where_clauses[query_type].printf (match);
+		}
+
+		if (sort_clauses[query_type].length > 0) {
+			query += " ORDER BY " + sort_clauses[query_type];
+		}
 
 		try {
 			cursor = yield connection.query_async (query, null);
@@ -330,8 +383,16 @@ public class Tracker.Query {
 			}
 		}
 
-		query = "SELECT " + string.joinv (" ", args) + " " + where_clauses[query_type].printf (match);
-		query += @" OFFSET $offset LIMIT $limit";
+		query  = "SELECT " + string.joinv (" ", args);
+		if (where_clauses[query_type].length > 0) {
+			query += " " + where_clauses[query_type].printf (match);
+		}
+
+		if (sort_clauses[query_type].length > 0) {
+			query += " ORDER BY " + sort_clauses[query_type];
+		}
+
+		query += " OFFSET %u LIMIT %u".printf (offset, limit);
 
 		debug ("Running query: '%s'", query);
 

@@ -33,6 +33,7 @@
 
 #if HAVE_TRACKER_FTS
 #include <libtracker-fts/tracker-fts.h>
+#include <libtracker-fts/tracker-parser.h>
 #endif
 
 #ifdef HAVE_LIBUNISTRING
@@ -51,13 +52,6 @@
 
 #include "tracker-db-interface-sqlite.h"
 #include "tracker-db-manager.h"
-
-/* Since 2.30, g_atomic_int_add() is fully equivalente to g_atomic_int_exchange_and_add() */
-#if GLIB_CHECK_VERSION (2,30,0)
-#define ATOMIC_EXCHANGE_AND_ADD(a,v) g_atomic_int_add (a,v)
-#else
-#define ATOMIC_EXCHANGE_AND_ADD(a,v) g_atomic_int_exchange_and_add (a,v)
-#endif
 
 #define UNKNOWN_STATUS 0.5
 
@@ -86,9 +80,6 @@ struct TrackerDBInterface {
 	gint n_active_cursors;
 
 	guint ro : 1;
-#if HAVE_TRACKER_FTS
-	TrackerFts *fts;
-#endif
 	GCancellable *cancellable;
 
 	TrackerDBStatementLru select_stmt_lru;
@@ -97,6 +88,8 @@ struct TrackerDBInterface {
 	TrackerBusyCallback busy_callback;
 	gpointer busy_user_data;
 	gchar *busy_status;
+
+	gchar *fts_insert_str;
 };
 
 struct TrackerDBInterfaceClass {
@@ -623,6 +616,78 @@ function_sparql_case_fold (sqlite3_context *context,
 	sqlite3_result_text16 (context, zOutput, written * 2, free);
 }
 
+static void
+function_sparql_normalize (sqlite3_context *context,
+                           int              argc,
+                           sqlite3_value   *argv[])
+{
+	const gchar *nfstr;
+	const uint16_t *zInput;
+	uint16_t *zOutput;
+	size_t written = 0;
+	int nInput;
+	uninorm_t nf;
+
+	if (argc != 2) {
+		sqlite3_result_error (context, "Invalid argument count", -1);
+		return;
+	}
+
+	zInput = sqlite3_value_text16 (argv[0]);
+
+	if (!zInput) {
+		return;
+	}
+
+	nfstr = sqlite3_value_text (argv[1]);
+	if (g_ascii_strcasecmp (nfstr, "nfc") == 0)
+		nf = UNINORM_NFC;
+	else if (g_ascii_strcasecmp (nfstr, "nfd") == 0)
+		nf = UNINORM_NFD;
+	else if (g_ascii_strcasecmp (nfstr, "nfkc") == 0)
+		nf = UNINORM_NFKC;
+	else if (g_ascii_strcasecmp (nfstr, "nfkd") == 0)
+		nf = UNINORM_NFKD;
+	else {
+		sqlite3_result_error (context, "Invalid normalization specified, options are 'nfc', 'nfd', 'nfkc' or 'nfkd'", -1);
+		return;
+	}
+
+	nInput = sqlite3_value_bytes16 (argv[0]);
+
+	zOutput = u16_normalize (nf, zInput, nInput/2, NULL, &written);
+
+	sqlite3_result_text16 (context, zOutput, written * 2, free);
+}
+
+static void
+function_sparql_unaccent (sqlite3_context *context,
+                          int              argc,
+                          sqlite3_value   *argv[])
+{
+	const gchar *zInput;
+	gchar *zOutput;
+	gsize written = 0;
+	int nInput;
+
+	g_assert (argc == 1);
+
+	zInput = sqlite3_value_text (argv[0]);
+
+	if (!zInput) {
+		return;
+	}
+
+	nInput = sqlite3_value_bytes (argv[0]);
+
+	zOutput = u8_normalize (UNINORM_NFKD, zInput, nInput, NULL, &written);
+
+	/* Unaccenting is done in place */
+	tracker_parser_unaccent_nfkd_string (zOutput, &written);
+
+	sqlite3_result_text (context, zOutput, written, free);
+}
+
 #elif HAVE_LIBICU
 
 static void
@@ -708,66 +773,110 @@ function_sparql_case_fold (sqlite3_context *context,
 
 	sqlite3_result_text16 (context, zOutput, -1, sqlite3_free);
 }
-#else /* GLib based */
 
 static void
-function_sparql_lower_case (sqlite3_context *context,
-                            int              argc,
-                            sqlite3_value   *argv[])
-{
-	const gchar *zInput;
-	gchar *zOutput;
-	int nInput;
-
-	g_assert (argc == 1);
-
-	/* GLib API works with UTF-8, so use the UTF-8 functions of SQLite too */
-
-	zInput = (const gchar*) sqlite3_value_text (argv[0]);
-
-	if (!zInput) {
-		return;
-	}
-
-	nInput = sqlite3_value_bytes (argv[0]);
-
-	if (!zOutput) {
-		return;
-	}
-
-	zOutput = g_utf8_strdown (zInput, nInput);
-
-	sqlite3_result_text (context, zOutput, -1, g_free);
-}
-
-static void
-function_sparql_case_fold (sqlite3_context *context,
+function_sparql_normalize (sqlite3_context *context,
                            int              argc,
                            sqlite3_value   *argv[])
 {
-	const gchar *zInput;
-	gchar *zOutput;
+	const gchar *nfstr;
+	const uint16_t *zInput;
+	uint16_t *zOutput;
 	int nInput;
+	int nOutput;
+	UNormalizationMode nf;
+	UErrorCode status = U_ZERO_ERROR;
 
-	g_assert (argc == 1);
+	if (argc != 2) {
+		sqlite3_result_error (context, "Invalid argument count", -1);
+		return;
+	}
 
-	/* GLib API works with UTF-8, so use the UTF-8 functions of SQLite too */
-
-	zInput = (const gchar*) sqlite3_value_text (argv[0]);
+	zInput = sqlite3_value_text16 (argv[0]);
 
 	if (!zInput) {
 		return;
 	}
 
-	nInput = sqlite3_value_bytes (argv[0]);
+	nfstr = sqlite3_value_text (argv[1]);
+	if (g_ascii_strcasecmp (nfstr, "nfc") == 0)
+		nf = UNORM_NFC;
+	else if (g_ascii_strcasecmp (nfstr, "nfd") == 0)
+		nf = UNORM_NFD;
+	else if (g_ascii_strcasecmp (nfstr, "nfkc") == 0)
+		nf = UNORM_NFKC;
+	else if (g_ascii_strcasecmp (nfstr, "nfkd") == 0)
+		nf = UNORM_NFKD;
+	else {
+		sqlite3_result_error (context, "Invalid normalization specified", -1);
+		return;
+	}
+
+	nInput = sqlite3_value_bytes16 (argv[0]);
+
+	nOutput = nInput * 2 + 2;
+	zOutput = sqlite3_malloc (nOutput);
 
 	if (!zOutput) {
 		return;
 	}
 
-	zOutput = g_utf8_casefold (zInput, nInput);
+	unorm_normalize (zInput, nInput/2, nf, 0, zOutput, nOutput/2, &status);
+	if (!U_SUCCESS (status)) {
+		char zBuf[128];
+		sqlite3_snprintf (128, zBuf, "ICU error: unorm_normalize: %s", u_errorName (status));
+		zBuf[127] = '\0';
+		sqlite3_free (zOutput);
+		sqlite3_result_error (context, zBuf, -1);
+		return;
+	}
 
-	sqlite3_result_text (context, zOutput, -1, g_free);
+	sqlite3_result_text16 (context, zOutput, -1, sqlite3_free);
+}
+
+static void
+function_sparql_unaccent (sqlite3_context *context,
+                          int              argc,
+                          sqlite3_value   *argv[])
+{
+	const gchar *nfstr;
+	const uint16_t *zInput;
+	uint16_t *zOutput;
+	int nInput;
+	gsize nOutput;
+	UErrorCode status = U_ZERO_ERROR;
+
+	g_assert (argc == 1);
+
+	zInput = sqlite3_value_text16 (argv[0]);
+
+	if (!zInput) {
+		return;
+	}
+
+	nInput = sqlite3_value_bytes16 (argv[0]);
+
+	nOutput = nInput * 2 + 2;
+	zOutput = sqlite3_malloc (nOutput);
+
+	if (!zOutput) {
+		return;
+	}
+
+	nOutput = unorm_normalize (zInput, nInput/2, UNORM_NFKD, 0, zOutput, nOutput/2, &status);
+	if (!U_SUCCESS (status)) {
+		char zBuf[128];
+		sqlite3_snprintf (128, zBuf, "ICU error: unorm_normalize: %s", u_errorName (status));
+		zBuf[127] = '\0';
+		sqlite3_free (zOutput);
+		sqlite3_result_error (context, zBuf, -1);
+		return;
+	}
+
+	/* Unaccenting is done in place */
+	tracker_parser_unaccent_nfkd_string (zOutput, &nOutput);
+
+	sqlite3_result_text16 (context, zOutput, -1, sqlite3_free);
 }
 
 #endif
@@ -894,6 +1003,14 @@ open_database (TrackerDBInterface  *db_interface,
 	                         db_interface, &function_sparql_case_fold,
 	                         NULL, NULL);
 
+	sqlite3_create_function (db_interface->db, "SparqlNormalize", 2, SQLITE_ANY,
+	                         db_interface, &function_sparql_normalize,
+	                         NULL, NULL);
+
+	sqlite3_create_function (db_interface->db, "SparqlUnaccent", 1, SQLITE_ANY,
+	                         db_interface, &function_sparql_unaccent,
+	                         NULL, NULL);
+
 	sqlite3_create_function (db_interface->db, "SparqlFormatTime", 1, SQLITE_ANY,
 	                         db_interface, &function_sparql_format_time,
 	                         NULL, NULL);
@@ -988,58 +1105,188 @@ close_database (TrackerDBInterface *db_interface)
 		db_interface->function_data = NULL;
 	}
 
-#if HAVE_TRACKER_FTS
-	if (db_interface->fts) {
-		tracker_fts_free (db_interface->fts);
-	}
-#endif
-
 	if (db_interface->db) {
 		rc = sqlite3_close (db_interface->db);
 		g_warn_if_fail (rc == SQLITE_OK);
 	}
 }
 
+static gchar **
+_fts_create_properties (GHashTable *properties)
+{
+	GHashTableIter iter;
+	GPtrArray *cols;
+	GList *columns;
+	gchar *table;
+
+	if (g_hash_table_size (properties) == 0) {
+		return NULL;
+	}
+
+	g_hash_table_iter_init (&iter, properties);
+	cols = g_ptr_array_new ();
+
+	while (g_hash_table_iter_next (&iter, (gpointer *) &table,
+				       (gpointer *) &columns)) {
+		while (columns) {
+			g_ptr_array_add (cols, g_strdup (columns->data));
+			columns = columns->next;
+		}
+	}
+
+	g_ptr_array_add (cols, NULL);
+
+	return (gchar **) g_ptr_array_free (cols, FALSE);
+}
+
 void
-tracker_db_interface_sqlite_fts_init (TrackerDBInterface *db_interface,
-                                      gboolean            create)
+tracker_db_interface_sqlite_fts_init (TrackerDBInterface  *db_interface,
+                                      GHashTable          *properties,
+                                      GHashTable          *multivalued,
+                                      gboolean             create)
 {
 #if HAVE_TRACKER_FTS
-	db_interface->fts = tracker_fts_new (db_interface->db, create);
-#else
-	g_message ("FTS support is disabled");
+	GStrv fts_columns;
+
+	tracker_fts_init_db (db_interface->db, properties);
+
+	if (create &&
+	    !tracker_fts_create_table (db_interface->db, "fts",
+				       properties, multivalued)) {
+		g_warning ("FTS tables creation failed");
+	}
+
+	fts_columns = _fts_create_properties (properties);
+
+	if (fts_columns) {
+		GString *insert, *select;
+		gint i = 0;
+
+		insert = g_string_new ("INSERT INTO fts (docid");
+		select = g_string_new ("SELECT rowid");
+
+		while (fts_columns[i]) {
+			g_string_append_printf (insert, ", \"%s\"",
+						fts_columns[i]);
+			g_string_append_printf (select, ", \"%s\"",
+						fts_columns[i]);
+			i++;
+		}
+
+		g_string_append (select, " FROM fts_view WHERE rowid=?");
+		g_string_append (insert, ") ");
+		g_string_append (insert, select->str);
+
+		g_string_free (select, TRUE);
+		db_interface->fts_insert_str = g_string_free (insert, FALSE);
+
+		g_strfreev (fts_columns);
+	}
 #endif
 }
 
 #if HAVE_TRACKER_FTS
-int
-tracker_db_interface_sqlite_fts_update_init (TrackerDBInterface *db_interface,
-                                             int                 id)
+void
+tracker_db_interface_sqlite_fts_alter_table (TrackerDBInterface  *db_interface,
+					     GHashTable          *properties,
+					     GHashTable          *multivalued)
 {
-	return tracker_fts_update_init (db_interface->fts, id);
+	if (!tracker_fts_alter_table (db_interface->db, "fts", properties, multivalued)) {
+		g_critical ("Failed to update FTS columns");
+	}
 }
 
-int
-tracker_db_interface_sqlite_fts_update_text (TrackerDBInterface *db_interface,
+gboolean
+tracker_db_interface_sqlite_fts_update_text (TrackerDBInterface  *db_interface,
+                                             int                  id,
+                                             const gchar        **properties,
+                                             const char         **text,
+                                             gboolean             create)
+{
+	TrackerDBStatement *stmt;
+	GError *error = NULL;
+
+	if (!create) {
+		stmt = tracker_db_interface_create_statement (db_interface,
+							      TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE,
+							      &error,
+							      "DELETE FROM fts WHERE docid=?");
+		tracker_db_statement_bind_int (stmt, 0, id);
+
+		tracker_db_statement_execute (stmt, &error);
+		g_object_unref (stmt);
+
+		if (error) {
+			g_warning ("Could not update FTS text: %s", error->message);
+			g_error_free (error);
+			return FALSE;
+		}
+	}
+
+	stmt = tracker_db_interface_create_statement (db_interface,
+	                                              TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE,
+	                                              &error,
+	                                              "%s",
+	                                              db_interface->fts_insert_str);
+
+	if (!stmt || error) {
+		if (error) {
+			g_warning ("Could not create FTS insert statement: %s\n",
+			           error->message);
+			g_error_free (error);
+		}
+		return FALSE;
+	}
+
+	tracker_db_statement_bind_int (stmt, 0, id);
+	tracker_db_statement_execute (stmt, &error);
+	g_object_unref (stmt);
+
+	if (error) {
+		g_warning ("Could not insert FTS text: %s", error->message);
+		g_error_free (error);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+gboolean
+tracker_db_interface_sqlite_fts_delete_text (TrackerDBInterface *db_interface,
                                              int                 id,
-                                             int                 column_id,
-                                             const char         *text,
-                                             gboolean            limit_word_length)
+					     const gchar        *property)
 {
-	return tracker_fts_update_text (db_interface->fts, id, column_id, text, limit_word_length);
+	TrackerDBStatement *stmt;
+	GError *error = NULL;
+
+	stmt = tracker_db_interface_create_statement (db_interface,
+	                                              TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE,
+	                                              &error,
+	                                              "UPDATE fts SET \"%s\" = '' WHERE docid = ?",
+	                                              property);
+
+	if (!stmt || error) {
+		if (error) {
+			g_warning ("Could not create FTS update statement: %s\n",
+			           error->message);
+			g_error_free (error);
+		}
+		return FALSE;
+	}
+
+	tracker_db_statement_bind_int (stmt, 0, id);
+	tracker_db_statement_execute (stmt, &error);
+	g_object_unref (stmt);
+
+	if (error) {
+		g_warning ("Could not execute FTS update: %s", error->message);
+		g_error_free (error);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
-void
-tracker_db_interface_sqlite_fts_update_commit (TrackerDBInterface *db_interface)
-{
-	return tracker_fts_update_commit (db_interface->fts);
-}
-
-void
-tracker_db_interface_sqlite_fts_update_rollback (TrackerDBInterface *db_interface)
-{
-	return tracker_fts_update_rollback (db_interface->fts);
-}
 #endif
 
 void
@@ -1087,6 +1334,7 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 	db_interface = TRACKER_DB_INTERFACE (object);
 
 	close_database (db_interface);
+	g_free (db_interface->fts_insert_str);
 
 	g_message ("Closed sqlite3 database:'%s'", db_interface->filename);
 
@@ -1362,7 +1610,7 @@ execute_stmt (TrackerDBInterface  *interface,
 
 	/* Statement is going to start, check if we got a request to reset the
 	 * collator, and if so, do it. */
-	if (ATOMIC_EXCHANGE_AND_ADD (&interface->n_active_cursors, 1) == 0 &&
+	if (g_atomic_int_add (&interface->n_active_cursors, 1) == 0 &&
 	    g_atomic_int_compare_and_exchange (&(interface->collator_reset_requested), TRUE, FALSE)) {
 		tracker_db_interface_sqlite_reset_collator (interface);
 	}
@@ -1739,7 +1987,7 @@ tracker_db_cursor_sqlite_new (sqlite3_stmt        *sqlite_stmt,
 	/* As soon as we create a cursor, check if we need a collator reset
 	 * and notify the iface about the new cursor */
 	iface = ref_stmt->db_interface;
-	if (ATOMIC_EXCHANGE_AND_ADD (&iface->n_active_cursors, 1) == 0 &&
+	if (g_atomic_int_add (&iface->n_active_cursors, 1) == 0 &&
 	    g_atomic_int_compare_and_exchange (&(iface->collator_reset_requested), TRUE, FALSE)) {
 		tracker_db_interface_sqlite_reset_collator (iface);
 	}
@@ -1848,6 +2096,10 @@ tracker_db_cursor_iter_next (TrackerDBCursor *cursor,
                              GCancellable    *cancellable,
                              GError         **error)
 {
+	if (!cursor) {
+		return FALSE;
+	}
+
 	return db_cursor_iter_next (cursor, cancellable, error);
 }
 

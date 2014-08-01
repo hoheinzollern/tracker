@@ -56,7 +56,6 @@ struct _TrackerPropertyPrivate {
 	gboolean       indexed;
 	TrackerProperty *secondary_index;
 	gboolean       fulltext_indexed;
-	gboolean       fulltext_no_limit;
 	gboolean       multiple_values;
 	gboolean       last_multiple_values;
 	gboolean       transient;
@@ -470,19 +469,22 @@ tracker_property_get_fulltext_indexed (TrackerProperty *property)
 
 	priv = GET_PRIV (property);
 
+	if (priv->use_gvdb) {
+		GVariant *value;
+		gboolean result;
+
+		value = tracker_ontologies_get_property_value_gvdb (priv->uri, "fulltext-indexed");
+		if (value != NULL) {
+			result = g_variant_get_boolean (value);
+			g_variant_unref (value);
+		} else {
+			result = FALSE;
+		}
+
+		return result;
+	}
+
 	return priv->fulltext_indexed;
-}
-
-gboolean
-tracker_property_get_fulltext_no_limit (TrackerProperty *property)
-{
-	TrackerPropertyPrivate *priv;
-
-	g_return_val_if_fail (TRACKER_IS_PROPERTY (property), FALSE);
-
-	priv = GET_PRIV (property);
-
-	return priv->fulltext_no_limit;
 }
 
 gboolean
@@ -967,19 +969,6 @@ tracker_property_set_fulltext_indexed (TrackerProperty *property,
 	priv = GET_PRIV (property);
 
 	priv->fulltext_indexed = value;
-}
-
-void
-tracker_property_set_fulltext_no_limit (TrackerProperty *property,
-                                       gboolean          value)
-{
-	TrackerPropertyPrivate *priv;
-
-	g_return_if_fail (TRACKER_IS_PROPERTY (property));
-
-	priv = GET_PRIV (property);
-
-	priv->fulltext_no_limit = value;
 }
 
 void

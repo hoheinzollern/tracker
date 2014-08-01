@@ -22,9 +22,9 @@ SUBDIRS =                                              \
 	backup                                         \
 	turtle
 
-noinst_PROGRAMS = $(TEST_PROGS)
+noinst_PROGRAMS += $(test_programs)
 
-TEST_PROGS +=                                          \
+test_programs = \
 	tracker-sparql                                 \
 	tracker-sparql-blank                           \
 	tracker-ontology                               \
@@ -56,7 +56,7 @@ tracker_ontology_change_SOURCES = tracker-ontology-change-test.c
 tracker_backup_SOURCES = tracker-backup-test.c
 tracker_db_journal_SOURCES = tracker-db-journal.c
 
-EXTRA_DIST =                                           \
+EXTRA_DIST += \
 	dawg-testcases                                 \
 	change/source/99-example.ontology.v1           \
 	change/source/99-example.ontology.v2           \
@@ -90,3 +90,6 @@ EXTRA_DIST =                                           \
 	ontologies/20-dc.ontology                      \
 	ontologies/31-nao.ontology                     \
 	ontologies/90-tracker.ontology
+
+clean-local:
+	rm -rf $(abs_builddir)/test-cache

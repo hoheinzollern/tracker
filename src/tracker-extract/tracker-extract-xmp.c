@@ -19,10 +19,6 @@
 
 #include "config.h"
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -35,6 +31,8 @@
 #include <glib/gstdio.h>
 
 #include <gio/gio.h>
+
+#include <libtracker-common/tracker-file-utils.h>
 
 #include <libtracker-extract/tracker-extract.h>
 
@@ -154,10 +152,7 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	preupdate = tracker_extract_info_get_preupdate_builder (info);
 	metadata = tracker_extract_info_get_metadata_builder (info);
 
-	fd = g_open (filename, O_RDONLY | O_NOATIME, 0);
-	if (fd == -1 && errno == EPERM) {
-		fd = g_open (filename, O_RDONLY, 0);
-	}
+	fd = tracker_file_open_fd (filename);
 
 	if (fd == -1) {
 		g_warning ("Could not open xmp file '%s': %s\n",

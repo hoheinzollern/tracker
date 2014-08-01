@@ -1,5 +1,3 @@
-include $(top_srcdir)/Makefile.decl
-
 noinst_LTLIBRARIES = libtracker-direct.la
 
 AM_VALAFLAGS =                                         \
@@ -14,7 +12,7 @@ AM_VALAFLAGS =                                         \
 	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi
 
 AM_CPPFLAGS =                                          \
-	$(BUILD_CFLAGS)                                \
+	$(BUILD_VALACFLAGS)                            \
 	-I$(top_srcdir)/src                            \
 	-I$(top_builddir)/src                          \
 	$(LIBTRACKER_DIRECT_CFLAGS)

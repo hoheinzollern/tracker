@@ -20,10 +20,6 @@
 
 #include "config.h"
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <png.h>
 
 #include <libtracker-common/tracker-file-utils.h>
@@ -68,6 +64,7 @@ typedef struct {
 	gchar *creation_time;
 	const gchar *title;
 	const gchar *disclaimer;
+	const gchar *software;
 } PngData;
 
 static gchar *
@@ -329,6 +326,11 @@ read_metadata (TrackerSparqlBuilder *preupdate,
 				pd.disclaimer = text_ptr[i].text;
 				continue;
 			}
+
+			if (g_strcmp0(text_ptr[i].key, "Software") == 0) {
+				pd.software = text_ptr[i].text;
+				continue;
+			}
 		}
 	}
 
@@ -372,7 +374,6 @@ read_metadata (TrackerSparqlBuilder *preupdate,
 	}
 
 	/* TODO: add ontology and store this ed->software */
-	g_free (ed->software);
 
 	if (md.creator) {
 		gchar *uri = tracker_sparql_escape_uri_printf ("urn:contact:%s", md.creator);
@@ -737,6 +738,11 @@ read_metadata (TrackerSparqlBuilder *preupdate,
 		g_free (p);
 	}
 	g_ptr_array_free (keywords, TRUE);
+
+	if (g_strcmp0(pd.software, "gnome-screenshot") == 0) {
+		tracker_sparql_builder_predicate (metadata, "nie:isPartOf");
+		tracker_sparql_builder_object (metadata, "nfo:image-category-screenshot");
+	}
 
 	tracker_exif_free (ed);
 	tracker_xmp_free (xd);

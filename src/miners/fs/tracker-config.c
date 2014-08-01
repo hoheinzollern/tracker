@@ -29,6 +29,7 @@
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-enum-types.h>
+#include <libtracker-common/tracker-log.h>
 
 #include "tracker-config.h"
 
@@ -38,7 +39,7 @@
 #define DEFAULT_INITIAL_SLEEP                    15       /* 0->1000 */
 #define DEFAULT_ENABLE_MONITORS                  TRUE
 #define DEFAULT_THROTTLE                         0        /* 0->20 */
-#define DEFAULT_INDEX_REMOVABLE_DEVICES          TRUE
+#define DEFAULT_INDEX_REMOVABLE_DEVICES          FALSE
 #define DEFAULT_INDEX_OPTICAL_DISCS              FALSE
 #define DEFAULT_INDEX_ON_BATTERY                 FALSE
 #define DEFAULT_INDEX_ON_BATTERY_FIRST_TIME      TRUE
@@ -48,6 +49,16 @@
 #define DEFAULT_ENABLE_WRITEBACK                 FALSE
 
 typedef struct {
+	/* NOTE: Only used with TRACKER_USE_CONFIG_FILES env var. */
+	gpointer config_file;
+
+	/* IMPORTANT: There are 3 versions of the directories:
+	 * 1. a GStrv stored in GSettings
+	 * 2. a GSList stored here which is the GStrv without any
+	 *    aliases or duplicates resolved.
+	 * 3. a GSList stored here which has duplicates and aliases
+	 *    resolved.
+	 */
 	GSList   *index_recursive_directories;
 	GSList	 *index_recursive_directories_unfiltered;
 	GSList   *index_single_directories;
@@ -63,16 +74,28 @@ typedef struct {
 	GSList   *ignored_file_paths;
 } TrackerConfigPrivate;
 
-static void     config_set_property         (GObject           *object,
-                                             guint              param_id,
-                                             const GValue      *value,
-                                             GParamSpec        *pspec);
-static void     config_get_property         (GObject           *object,
-                                             guint              param_id,
-                                             GValue            *value,
-                                             GParamSpec        *pspec);
-static void     config_finalize             (GObject           *object);
-static void     config_constructed          (GObject           *object);
+static void config_set_property                         (GObject           *object,
+                                                         guint              param_id,
+                                                         const GValue      *value,
+                                                         GParamSpec        *pspec);
+static void config_get_property                         (GObject           *object,
+                                                         guint              param_id,
+                                                         GValue            *value,
+                                                         GParamSpec        *pspec);
+static void config_finalize                             (GObject           *object);
+static void config_constructed                          (GObject           *object);
+static void config_file_changed_cb                      (TrackerConfigFile *config,
+                                                         gpointer           user_data);
+static void config_set_index_recursive_directories      (TrackerConfig     *config,
+                                                         GSList            *roots);
+static void config_set_index_single_directories         (TrackerConfig     *config,
+                                                         GSList            *roots);
+static void config_set_ignored_directories              (TrackerConfig     *config,
+                                                         GSList            *roots);
+static void config_set_ignored_directories_with_content (TrackerConfig     *config,
+                                                         GSList            *roots);
+static void config_set_ignored_files                    (TrackerConfig     *config,
+                                                         GSList            *files);
 
 enum {
 	PROP_0,
@@ -106,24 +129,24 @@ enum {
 };
 
 static TrackerConfigMigrationEntry migration[] = {
-	{ G_TYPE_ENUM,    "General",   "Verbosity",                     "verbosity"                        },
-	{ G_TYPE_ENUM,    "General",   "SchedIdle",                     "sched-idle"                       },
-	{ G_TYPE_INT,     "General",   "InitialSleep",                  "initial-sleep"                    },
-	{ G_TYPE_BOOLEAN, "Monitors",  "EnableMonitors",                "enable-monitors"                  },
-	{ G_TYPE_INT,     "Indexing",  "Throttle",                      "throttle"                         },
-	{ G_TYPE_BOOLEAN, "Indexing",  "IndexOnBattery",                "index-on-battery"                 },
-	{ G_TYPE_BOOLEAN, "Indexing",  "IndexOnBatteryFirstTime",       "index-on-battery-first-time"      },
-	{ G_TYPE_BOOLEAN, "Indexing",  "IndexRemovableMedia",           "index-removable-devices"          },
-	{ G_TYPE_BOOLEAN, "Indexing",  "IndexOpticalDiscs",             "index-optical-discs"              },
-	{ G_TYPE_INT,     "Indexing",  "LowDiskSpaceLimit",             "low-disk-space-limit"             },
-	{ G_TYPE_POINTER, "Indexing",  "IndexRecursiveDirectories",     "index-recursive-directories"      },
-	{ G_TYPE_POINTER, "Indexing",  "IndexSingleDirectories",        "index-single-directories"         },
-	{ G_TYPE_POINTER, "Indexing",  "IgnoredDirectories",            "ignored-directories"              },
-	{ G_TYPE_POINTER, "Indexing",  "IgnoredDirectoriesWithContent", "ignored-directories-with-content" },
-	{ G_TYPE_POINTER, "Indexing",  "IgnoredFiles",                  "ignored-files"                    },
-	{ G_TYPE_INT,     "Indexing",  "CrawlingInterval",              "crawling-interval"                },
-	{ G_TYPE_INT,     "Indexing",  "RemovableDaysThreshold",        "removable-days-threshold"         },
-	{ G_TYPE_BOOLEAN, "Writeback", "EnableWriteback",               "enable-writeback"                 },
+	{ G_TYPE_ENUM,    "General",   "Verbosity",                     "verbosity",                        FALSE, FALSE },
+	{ G_TYPE_ENUM,    "General",   "SchedIdle",                     "sched-idle",                       FALSE, FALSE },
+	{ G_TYPE_INT,     "General",   "InitialSleep",                  "initial-sleep",                    FALSE, FALSE },
+	{ G_TYPE_BOOLEAN, "Monitors",  "EnableMonitors",                "enable-monitors",                  FALSE, FALSE },
+	{ G_TYPE_INT,     "Indexing",  "Throttle",                      "throttle",                         FALSE, FALSE },
+	{ G_TYPE_BOOLEAN, "Indexing",  "IndexOnBattery",                "index-on-battery",                 FALSE, FALSE },
+	{ G_TYPE_BOOLEAN, "Indexing",  "IndexOnBatteryFirstTime",       "index-on-battery-first-time",      FALSE, FALSE },
+	{ G_TYPE_BOOLEAN, "Indexing",  "IndexRemovableMedia",           "index-removable-devices",          FALSE, FALSE },
+	{ G_TYPE_BOOLEAN, "Indexing",  "IndexOpticalDiscs",             "index-optical-discs",              FALSE, FALSE },
+	{ G_TYPE_INT,     "Indexing",  "LowDiskSpaceLimit",             "low-disk-space-limit",             FALSE, FALSE },
+	{ G_TYPE_POINTER, "Indexing",  "IndexRecursiveDirectories",     "index-recursive-directories",      TRUE,  TRUE },
+	{ G_TYPE_POINTER, "Indexing",  "IndexSingleDirectories",        "index-single-directories",         TRUE,  FALSE },
+	{ G_TYPE_POINTER, "Indexing",  "IgnoredDirectories",            "ignored-directories",              FALSE, FALSE },
+	{ G_TYPE_POINTER, "Indexing",  "IgnoredDirectoriesWithContent", "ignored-directories-with-content", FALSE, FALSE },
+	{ G_TYPE_POINTER, "Indexing",  "IgnoredFiles",                  "ignored-files",                    FALSE, FALSE },
+	{ G_TYPE_INT,     "Indexing",  "CrawlingInterval",              "crawling-interval",                FALSE, FALSE },
+	{ G_TYPE_INT,     "Indexing",  "RemovableDaysThreshold",        "removable-days-threshold",         FALSE, FALSE },
+	{ G_TYPE_BOOLEAN, "Writeback", "EnableWriteback",               "enable-writeback",                 FALSE, FALSE },
 	{ 0 }
 };
 
@@ -227,45 +250,50 @@ tracker_config_class_init (TrackerConfigClass *klass)
 	                                                   G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 	                                 PROP_INDEX_RECURSIVE_DIRECTORIES,
-	                                 g_param_spec_pointer ("index-recursive-directories",
-	                                                       "Index recursive directories",
-	                                                       " List of directories to crawl recursively for indexing (separator=;)\n"
-	                                                       " Special values include: (see /etc/xdg/user-dirs.defaults & $HOME/.config/user-dirs.default)\n"
-	                                                       "   &DESKTOP\n"
-	                                                       "   &DOCUMENTS\n"
-	                                                       "   &DOWNLOAD\n"
-	                                                       "   &MUSIC\n"
-	                                                       "   &PICTURES\n"
-	                                                       "   &PUBLIC_SHARE\n"
-	                                                       "   &TEMPLATES\n"
-	                                                       "   &VIDEOS\n"
-	                                                       " If $HOME is the default below, it is because $HOME/.config/user-dirs.default was missing.",
-	                                                       G_PARAM_READWRITE));
+	                                 g_param_spec_boxed ("index-recursive-directories",
+	                                                     "Index recursive directories",
+	                                                     " List of directories to crawl recursively for indexing (separator=;)\n"
+	                                                     " Special values include: (see /etc/xdg/user-dirs.defaults & $HOME/.config/user-dirs.default)\n"
+	                                                     "   &DESKTOP\n"
+	                                                     "   &DOCUMENTS\n"
+	                                                     "   &DOWNLOAD\n"
+	                                                     "   &MUSIC\n"
+	                                                     "   &PICTURES\n"
+	                                                     "   &PUBLIC_SHARE\n"
+	                                                     "   &TEMPLATES\n"
+	                                                     "   &VIDEOS\n"
+	                                                     " If $HOME is the default below, it is because $HOME/.config/user-dirs.default was missing.",
+	                                                     G_TYPE_STRV,
+	                                                     G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 	                                 PROP_INDEX_SINGLE_DIRECTORIES,
-	                                 g_param_spec_pointer ("index-single-directories",
-	                                                       "Index single directories",
-	                                                       " List of directories to index but not sub-directories for changes (separator=;)\n"
-	                                                       " Special values used for IndexRecursiveDirectories can also be used here",
-	                                                       G_PARAM_READWRITE));
+	                                 g_param_spec_boxed ("index-single-directories",
+	                                                     "Index single directories",
+	                                                     " List of directories to index but not sub-directories for changes (separator=;)\n"
+	                                                     " Special values used for IndexRecursiveDirectories can also be used here",
+	                                                     G_TYPE_STRV,
+	                                                     G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 	                                 PROP_IGNORED_DIRECTORIES,
-	                                 g_param_spec_pointer ("ignored-directories",
-	                                                       "Ignored directories",
-	                                                       " List of directories to NOT crawl for indexing (separator=;)",
-	                                                       G_PARAM_READWRITE));
+	                                 g_param_spec_boxed ("ignored-directories",
+	                                                     "Ignored directories",
+	                                                     " List of directories to NOT crawl for indexing (separator=;)",
+	                                                     G_TYPE_STRV,
+	                                                     G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 	                                 PROP_IGNORED_DIRECTORIES_WITH_CONTENT,
-	                                 g_param_spec_pointer ("ignored-directories-with-content",
-	                                                       "Ignored directories with content",
-	                                                       " List of directories to NOT crawl for indexing based on child files (separator=;)",
-	                                                       G_PARAM_READWRITE));
+	                                 g_param_spec_boxed ("ignored-directories-with-content",
+	                                                     "Ignored directories with content",
+	                                                     " List of directories to NOT crawl for indexing based on child files (separator=;)",
+	                                                     G_TYPE_STRV,
+	                                                     G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 	                                 PROP_IGNORED_FILES,
-	                                 g_param_spec_pointer ("ignored-files",
-	                                                       "Ignored files",
-	                                                       " List of files to NOT index (separator=;)",
-	                                                       G_PARAM_READWRITE));
+	                                 g_param_spec_boxed ("ignored-files",
+	                                                     "Ignored files",
+	                                                     " List of files to NOT index (separator=;)",
+	                                                     G_TYPE_STRV,
+	                                                     G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 	                                 PROP_CRAWLING_INTERVAL,
 	                                 g_param_spec_int ("crawling-interval",
@@ -313,90 +341,79 @@ static void
 config_set_property (GObject      *object,
                      guint         param_id,
                      const GValue *value,
-                     GParamSpec           *pspec)
+                     GParamSpec   *pspec)
 {
 	switch (param_id) {
 		/* General */
+		/* NOTE: We handle these because we have to be able
+		 * to save these based on command line overrides.
+		 */
 	case PROP_VERBOSITY:
 		tracker_config_set_verbosity (TRACKER_CONFIG (object),
 		                              g_value_get_enum (value));
-		break;
-	case PROP_SCHED_IDLE:
-		tracker_config_set_sched_idle (TRACKER_CONFIG (object),
-		                               g_value_get_enum (value));
 		break;
 	case PROP_INITIAL_SLEEP:
 		tracker_config_set_initial_sleep (TRACKER_CONFIG (object),
 		                                  g_value_get_int (value));
 		break;
 
-		/* Monitors */
-	case PROP_ENABLE_MONITORS:
-		tracker_config_set_enable_monitors (TRACKER_CONFIG (object),
-		                                    g_value_get_boolean (value));
-		break;
-
 		/* Indexing */
-	case PROP_THROTTLE:
-		tracker_config_set_throttle (TRACKER_CONFIG (object),
-		                             g_value_get_int (value));
-		break;
-	case PROP_INDEX_ON_BATTERY:
-		tracker_config_set_index_on_battery (TRACKER_CONFIG (object),
-		                                     g_value_get_boolean (value));
-		break;
-	case PROP_INDEX_ON_BATTERY_FIRST_TIME:
-		tracker_config_set_index_on_battery_first_time (TRACKER_CONFIG (object),
-		                                                g_value_get_boolean (value));
-		break;
-	case PROP_INDEX_REMOVABLE_DEVICES:
-		tracker_config_set_index_removable_devices (TRACKER_CONFIG (object),
-		                                            g_value_get_boolean (value));
-		break;
-	case PROP_INDEX_OPTICAL_DISCS:
-		tracker_config_set_index_optical_discs (TRACKER_CONFIG (object),
-		                                        g_value_get_boolean (value));
-		break;
-	case PROP_LOW_DISK_SPACE_LIMIT:
-		tracker_config_set_low_disk_space_limit (TRACKER_CONFIG (object),
-		                                         g_value_get_int (value));
-		break;
-	case PROP_INDEX_RECURSIVE_DIRECTORIES:
-		tracker_config_set_index_recursive_directories (TRACKER_CONFIG (object),
-		                                                g_value_get_pointer (value));
-		break;
-	case PROP_INDEX_SINGLE_DIRECTORIES:
-		tracker_config_set_index_single_directories (TRACKER_CONFIG (object),
-		                                             g_value_get_pointer (value));
-		break;
-	case PROP_IGNORED_DIRECTORIES:
-		tracker_config_set_ignored_directories (TRACKER_CONFIG (object),
-		                                        g_value_get_pointer (value));
-		break;
-	case PROP_IGNORED_DIRECTORIES_WITH_CONTENT:
-		tracker_config_set_ignored_directories_with_content (TRACKER_CONFIG (object),
-		                                                     g_value_get_pointer (value));
-		break;
-	case PROP_IGNORED_FILES:
-		tracker_config_set_ignored_files (TRACKER_CONFIG (object),
-		                                  g_value_get_pointer (value));
-		break;
-	case PROP_CRAWLING_INTERVAL:
-		tracker_config_set_crawling_interval (TRACKER_CONFIG (object),
-		                                      g_value_get_int (value));
-		break;
-	case PROP_REMOVABLE_DAYS_THRESHOLD:
-		tracker_config_set_removable_days_threshold (TRACKER_CONFIG (object),
-		                                             g_value_get_int (value));
-		break;
+		/* NOTE: We handle these specifically because we
+		 * create convenience data around these lists.
+		 */
+	case PROP_INDEX_RECURSIVE_DIRECTORIES: {
+		GStrv strv = g_value_get_boxed (value);
+		GSList *dirs = tracker_string_list_to_gslist (strv, -1);
 
-	/* Writeback */
-	case PROP_ENABLE_WRITEBACK:
-		tracker_config_set_enable_writeback (TRACKER_CONFIG (object),
-		                                     g_value_get_boolean (value));
+		config_set_index_recursive_directories (TRACKER_CONFIG (object), dirs);
+
+		g_slist_foreach (dirs, (GFunc) g_free, NULL);
+		g_slist_free (dirs);
+
 		break;
+	}
+	case PROP_INDEX_SINGLE_DIRECTORIES: {
+		GStrv strv = g_value_get_boxed (value);
+		GSList *dirs = tracker_string_list_to_gslist (strv, -1);
+
+		config_set_index_single_directories (TRACKER_CONFIG (object), dirs);
+
+		g_slist_foreach (dirs, (GFunc) g_free, NULL);
+		g_slist_free (dirs);
+		break;
+	}
+	case PROP_IGNORED_DIRECTORIES: {
+		GStrv strv = g_value_get_boxed (value);
+		GSList *dirs = tracker_string_list_to_gslist (strv, -1);
+
+		config_set_ignored_directories (TRACKER_CONFIG (object), dirs);
+
+		g_slist_foreach (dirs, (GFunc) g_free, NULL);
+		g_slist_free (dirs);
+		break;
+	}
+	case PROP_IGNORED_DIRECTORIES_WITH_CONTENT: {
+		GStrv strv = g_value_get_boxed (value);
+		GSList *dirs = tracker_string_list_to_gslist (strv, -1);
+
+		config_set_ignored_directories_with_content (TRACKER_CONFIG (object), dirs);
+
+		g_slist_foreach (dirs, (GFunc) g_free, NULL);
+		g_slist_free (dirs);
+		break;
+	}
+	case PROP_IGNORED_FILES: {
+		GStrv strv = g_value_get_boxed (value);
+		GSList *files = tracker_string_list_to_gslist (strv, -1);
+
+		config_set_ignored_files (TRACKER_CONFIG (object), files);
+
+		g_slist_foreach (files, (GFunc) g_free, NULL);
+		g_slist_free (files);
+		break;
+	}
 	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		/* We don't care about the others... we don't save anyway. */
 		break;
 	};
 }
@@ -408,6 +425,7 @@ config_get_property (GObject    *object,
                      GParamSpec *pspec)
 {
 	TrackerConfig *config = TRACKER_CONFIG (object);
+	TrackerConfigPrivate *priv = config->priv;
 
 	switch (param_id) {
 		/* General */
@@ -446,19 +464,19 @@ config_get_property (GObject    *object,
 		g_value_set_int (value, tracker_config_get_low_disk_space_limit (config));
 		break;
 	case PROP_INDEX_RECURSIVE_DIRECTORIES:
-		g_value_set_pointer (value, tracker_config_get_index_recursive_directories (config));
+		g_value_take_boxed (value, tracker_gslist_to_string_list (priv->index_recursive_directories_unfiltered));
 		break;
 	case PROP_INDEX_SINGLE_DIRECTORIES:
-		g_value_set_pointer (value, tracker_config_get_index_single_directories (config));
+		g_value_take_boxed (value, tracker_gslist_to_string_list (priv->index_single_directories_unfiltered));
 		break;
 	case PROP_IGNORED_DIRECTORIES:
-		g_value_set_pointer (value, tracker_config_get_ignored_directories (config));
+		g_value_take_boxed (value, tracker_gslist_to_string_list (priv->ignored_directories));
 		break;
 	case PROP_IGNORED_DIRECTORIES_WITH_CONTENT:
-		g_value_set_pointer (value, tracker_config_get_ignored_directories_with_content (config));
+		g_value_take_boxed (value, tracker_gslist_to_string_list (priv->ignored_directories_with_content));
 		break;
 	case PROP_IGNORED_FILES:
-		g_value_set_pointer (value, tracker_config_get_ignored_files (config));
+		g_value_take_boxed (value, tracker_gslist_to_string_list (priv->ignored_files));
 		break;
 	case PROP_CRAWLING_INTERVAL:
 		g_value_set_int (value, tracker_config_get_crawling_interval (config));
@@ -471,6 +489,8 @@ config_get_property (GObject    *object,
 	case PROP_ENABLE_WRITEBACK:
 		g_value_set_boolean (value, tracker_config_get_enable_writeback (config));
 		break;
+
+	/* Did we miss any new properties? */
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -525,88 +545,78 @@ config_finalize (GObject *object)
 	g_slist_foreach (priv->index_recursive_directories_unfiltered, (GFunc) g_free, NULL);
 	g_slist_free (priv->index_recursive_directories_unfiltered);
 
+	if (priv->config_file) {
+		g_signal_handlers_disconnect_by_func (priv->config_file,
+		                                      config_file_changed_cb,
+		                                      TRACKER_CONFIG (object));
+		g_object_unref (priv->config_file);
+		priv->config_file = NULL;
+	}
+
 	(G_OBJECT_CLASS (tracker_config_parent_class)->finalize) (object);
 }
 
-static gboolean
-settings_get_dir_mapping (GVariant *value,
-                          gpointer *result,
-                          gpointer  user_data)
+static gchar *
+get_user_special_dir_if_not_home (GUserDirectory directory)
 {
-	gchar **strv;
-	gboolean is_recursive;
-	GSList *dirs, *l;
-	gsize len;
+	const gchar *path;
 
-	strv = (gchar **) g_variant_get_strv (value, &len);
-	dirs = tracker_string_list_to_gslist (strv, len);
-	g_free (strv);
+	path = g_get_user_special_dir (directory);
 
-	is_recursive = GPOINTER_TO_INT (user_data);
+	if (g_strcmp0 (path, g_get_home_dir ()) == 0) {
+		/* ignore XDG directories set to $HOME */
+		return NULL;
+	} else {
+		return g_strdup (path);
+	}
+}
+
+static GSList *
+dir_mapping_get (GSList   *dirs,
+                 gboolean  is_recursive)
+{
+	GSList *filtered = NULL;
+	GSList *evaluated_dirs, *l;
 
 	if (dirs) {
-		GSList *filtered;
-
 		filtered = tracker_path_list_filter_duplicates (dirs, ".", is_recursive);
-
-		g_slist_foreach (dirs, (GFunc) g_free, NULL);
-		g_slist_free (dirs);
-
-		dirs = filtered;
 	}
 
-	for (l = dirs; l; l = l->next) {
-		const gchar *path_to_use;
-		gchar *freeme = NULL;
+	evaluated_dirs = NULL;
+
+	for (l = filtered; l; l = l->next) {
+		gchar *path_to_use;
 
 		/* Must be a special dir */
 		if (strcmp (l->data, "&DESKTOP") == 0) {
-			path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_DESKTOP);
+			path_to_use = get_user_special_dir_if_not_home (G_USER_DIRECTORY_DESKTOP);
 		} else if (strcmp (l->data, "&DOCUMENTS") == 0) {
-			path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_DOCUMENTS);
+			path_to_use = get_user_special_dir_if_not_home (G_USER_DIRECTORY_DOCUMENTS);
 		} else if (strcmp (l->data, "&DOWNLOAD") == 0) {
-			path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_DOWNLOAD);
+			path_to_use = get_user_special_dir_if_not_home (G_USER_DIRECTORY_DOWNLOAD);
 		} else if (strcmp (l->data, "&MUSIC") == 0) {
-			path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_MUSIC);
+			path_to_use = get_user_special_dir_if_not_home (G_USER_DIRECTORY_MUSIC);
 		} else if (strcmp (l->data, "&PICTURES") == 0) {
-			path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_PICTURES);
+			path_to_use = get_user_special_dir_if_not_home (G_USER_DIRECTORY_PICTURES);
 		} else if (strcmp (l->data, "&PUBLIC_SHARE") == 0) {
-			path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_PUBLIC_SHARE);
+			path_to_use = get_user_special_dir_if_not_home (G_USER_DIRECTORY_PUBLIC_SHARE);
 		} else if (strcmp (l->data, "&TEMPLATES") == 0) {
-			path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_TEMPLATES);
+			path_to_use = get_user_special_dir_if_not_home (G_USER_DIRECTORY_TEMPLATES);
 		} else if (strcmp (l->data, "&VIDEOS") == 0) {
-			path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_VIDEOS);
+			path_to_use = get_user_special_dir_if_not_home (G_USER_DIRECTORY_VIDEOS);
 		} else {
 			path_to_use = tracker_path_evaluate_name (l->data);
-			freeme = (gchar *) path_to_use;
 		}
 
 		if (path_to_use) {
-			g_free (l->data);
-			l->data = g_strdup (path_to_use);
+			evaluated_dirs = g_slist_prepend (evaluated_dirs, path_to_use);
 		}
-
-		g_free (freeme);
 	}
 
-	*result = dirs;
+	g_slist_foreach (filtered, (GFunc) g_free, NULL);
+	g_slist_free (filtered);
 
-	return TRUE;
-}
-
-static gboolean
-settings_get_strv_mapping (GVariant *value,
-                           gpointer *result,
-                           gpointer  user_data)
-{
-	gchar **strv;
-	gsize len;
-
-	strv = (gchar **) g_variant_get_strv (value, &len);
-	*result = tracker_string_list_to_gslist (strv, len);
-	g_free (strv);
-
-	return TRUE;
+	return g_slist_reverse (evaluated_dirs);
 }
 
 static void
@@ -694,154 +704,91 @@ config_set_ignored_directory_conveniences (TrackerConfig *config)
 static void
 config_constructed (GObject *object)
 {
+	TrackerConfig *config;
 	TrackerConfigFile *config_file;
-	TrackerConfigPrivate *priv;
+	GSettings *settings;
 
 	(G_OBJECT_CLASS (tracker_config_parent_class)->constructed) (object);
 
-	priv = TRACKER_CONFIG (object)->priv;
-	g_settings_delay (G_SETTINGS (object));
+	config = TRACKER_CONFIG (object);
+	settings = G_SETTINGS (object);
+
+	/* NOTE: Without the _delay() call the updates to settings
+	 * from tracker-preferences may not happen before we notify
+	 * about the property change from _set_*() APIs. This is
+	 * because the GValue in set_property() is not up to date at
+	 * the time we are called back. Quite fscking stupid really if
+	 * you ask me.
+	 *
+	 * NOTE: We need this. If we don't we can't have local
+	 * settings which are *NOT* stored in the GSettings database.
+	 * We need this for overriding things like verbosity on start
+	 * up.
+	 */
+	g_settings_delay (settings);
+
+	/* Set up bindings */
+	g_settings_bind (settings, "verbosity", object, "verbosity", G_SETTINGS_BIND_GET_NO_CHANGES);
+	g_settings_bind (settings, "sched-idle", object, "sched-idle", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "initial-sleep", object, "initial-sleep", G_SETTINGS_BIND_GET_NO_CHANGES);
+	g_settings_bind (settings, "throttle", object, "throttle", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "low-disk-space-limit", object, "low-disk-space-limit", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "crawling-interval", object, "crawling-interval", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "low-disk-space-limit", object, "low-disk-space-limit", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "removable-days-threshold", object, "removable-days-threshold", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "enable-monitors", object, "enable-monitors", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "enable-writeback", object, "enable-writeback", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "index-removable-devices", object, "index-removable-devices", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "index-optical-discs", object, "index-optical-discs", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "index-on-battery", object, "index-on-battery", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "index-on-battery-first-time", object, "index-on-battery-first-time", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "index-recursive-directories", object, "index-recursive-directories", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "index-single-directories", object, "index-single-directories", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "ignored-files", object, "ignored-files", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "ignored-directories", object, "ignored-directories", G_SETTINGS_BIND_GET);
+	g_settings_bind (settings, "ignored-directories-with-content", object, "ignored-directories-with-content", G_SETTINGS_BIND_GET);
 
 	/* Migrate keyfile-based configuration */
 	config_file = tracker_config_file_new ();
 
 	if (config_file) {
-		tracker_config_file_migrate (config_file, G_SETTINGS (object), migration);
-		g_object_unref (config_file);
+		/* NOTE: Migration works both ways... */
+		tracker_config_file_migrate (config_file, settings, migration);
+
+		if (G_UNLIKELY (g_getenv ("TRACKER_USE_CONFIG_FILES"))) {
+			TrackerConfigPrivate *priv;
+
+			tracker_config_file_load_from_file (config_file, G_OBJECT (config), migration);
+			g_signal_connect (config_file, "changed", G_CALLBACK (config_file_changed_cb), config);
+
+			priv = config->priv;
+			priv->config_file = config_file;
+		} else {
+			g_object_unref (config_file);
+		}
 	}
-
-	/* Get cached values */
-	priv->index_recursive_directories = g_settings_get_mapped (G_SETTINGS (object),
-	                                                           "index-recursive-directories",
-	                                                           settings_get_dir_mapping,
-	                                                           GUINT_TO_POINTER (TRUE));
-
-	priv->index_single_directories = g_settings_get_mapped (G_SETTINGS (object),
-	                                                        "index-single-directories",
-	                                                        settings_get_dir_mapping,
-	                                                        GUINT_TO_POINTER (FALSE));
-
-	priv->ignored_directories = g_settings_get_mapped (G_SETTINGS (object),
-	                                                   "ignored-directories",
-	                                                   settings_get_dir_mapping,
-	                                                   GUINT_TO_POINTER (FALSE));
-
-	priv->ignored_directories_with_content = g_settings_get_mapped (G_SETTINGS (object),
-	                                                                "ignored-directories-with-content",
-	                                                                settings_get_strv_mapping, NULL);
-
-	priv->ignored_files = g_settings_get_mapped (G_SETTINGS (object),
-	                                             "ignored-files",
-	                                             settings_get_strv_mapping, NULL);
 
 	config_set_ignored_file_conveniences (TRACKER_CONFIG (object));
 	config_set_ignored_directory_conveniences (TRACKER_CONFIG (object));
+}
+
+static void
+config_file_changed_cb (TrackerConfigFile *config_file,
+                        gpointer           user_data)
+{
+	GSettings *settings = G_SETTINGS (user_data);
+
+	tracker_info ("Settings have changed in INI file, we need to restart to take advantage of those changes!");
+	tracker_config_file_import_to_settings (config_file, settings, migration);
 }
 
 TrackerConfig *
 tracker_config_new (void)
 {
 	return g_object_new (TRACKER_TYPE_CONFIG,
-	                     "schema", "org.freedesktop.Tracker.Miner.Files",
+	                     "schema-id", "org.freedesktop.Tracker.Miner.Files",
 	                     "path", "/org/freedesktop/tracker/miner/files/",
 	                     NULL);
-}
-
-static gchar **
-directories_to_strv (GSList *dirs)
-{
-	gchar **strv;
-	guint i = 0;
-	GSList *l;
-
-	strv = g_new0 (gchar*, g_slist_length (dirs) + 1);
-
-	for (l = dirs; l; l = l->next) {
-		const gchar *path_to_use;
-
-		/* FIXME: This doesn't work
-		 * perfectly, what if DESKTOP
-		 * and DOCUMENTS are in the
-		 * same place? Then this
-		 * breaks. Need a better
-		 * solution at some point.
-		 */
-		if (g_strcmp0 (l->data, g_get_home_dir ()) == 0) {
-			/* Home dir gets straight into configuration,
-			 * regardless of having XDG dirs pointing to it.
-			 */
-			path_to_use = "$HOME";
-		} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_DESKTOP)) == 0) {
-			path_to_use = "&DESKTOP";
-		} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_DOCUMENTS)) == 0) {
-			path_to_use = "&DOCUMENTS";
-		} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_DOWNLOAD)) == 0) {
-			path_to_use = "&DOWNLOAD";
-		} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_MUSIC)) == 0) {
-			path_to_use = "&MUSIC";
-		} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_PICTURES)) == 0) {
-			path_to_use = "&PICTURES";
-		} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_PUBLIC_SHARE)) == 0) {
-			path_to_use = "&PUBLIC_SHARE";
-		} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_TEMPLATES)) == 0) {
-			path_to_use = "&TEMPLATES";
-		} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_VIDEOS)) == 0) {
-			path_to_use = "&VIDEOS";
-		} else {
-			path_to_use = l->data;
-		}
-
-		strv[i] = g_strdup (path_to_use);
-		i++;
-	}
-
-	return strv;
-}
-
-gboolean
-tracker_config_save (TrackerConfig *config)
-{
-	TrackerConfigPrivate *priv;
-	gchar **strv;
-
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
-
-	priv = config->priv;
-
-	/* Store cached values */
-	strv = tracker_gslist_to_string_list (priv->ignored_directories_with_content);
-	g_settings_set_strv (G_SETTINGS (config),
-	                     "ignored-directories-with-content",
-	                     (const gchar * const *) strv);
-	g_strfreev (strv);
-
-	strv = tracker_gslist_to_string_list (priv->ignored_files);
-	g_settings_set_strv (G_SETTINGS (config),
-	                     "ignored-files",
-	                     (const gchar * const *) strv);
-	g_strfreev (strv);
-
-	strv = tracker_gslist_to_string_list (priv->ignored_directories);
-	g_settings_set_strv (G_SETTINGS (config),
-	                     "ignored-directories",
-	                     (const gchar * const *) strv);
-	g_strfreev (strv);
-
-	strv = directories_to_strv (priv->index_recursive_directories);
-	g_settings_set_strv (G_SETTINGS (config),
-	                     "index-recursive-directories",
-	                     (const gchar * const *) strv);
-	g_strfreev (strv);
-
-	strv = directories_to_strv (priv->index_single_directories);
-	g_settings_set_strv (G_SETTINGS (config),
-	                     "index-single-directories",
-	                     (const gchar * const *) strv);
-	g_strfreev (strv);
-
-	/* And then apply the config */
-	g_settings_apply (G_SETTINGS (config));
-	return TRUE;
 }
 
 gint
@@ -945,18 +892,6 @@ tracker_config_get_index_recursive_directories (TrackerConfig *config)
 }
 
 GSList *
-tracker_config_get_index_recursive_directories_unfiltered (TrackerConfig *config)
-{
-	TrackerConfigPrivate *priv;
-
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
-
-	priv = config->priv;
-
-	return priv->index_recursive_directories_unfiltered;
-}
-
-GSList *
 tracker_config_get_index_single_directories (TrackerConfig *config)
 {
 	TrackerConfigPrivate *priv;
@@ -966,18 +901,6 @@ tracker_config_get_index_single_directories (TrackerConfig *config)
 	priv = config->priv;
 
 	return priv->index_single_directories;
-}
-
-GSList *
-tracker_config_get_index_single_directories_unfiltered (TrackerConfig *config)
-{
-	TrackerConfigPrivate *priv;
-
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
-
-	priv = config->priv;
-
-	return priv->index_single_directories_unfiltered;
 }
 
 GSList *
@@ -1036,22 +959,11 @@ void
 tracker_config_set_verbosity (TrackerConfig *config,
                               gint           value)
 {
-
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
+	/* g_object_set (G_OBJECT (config), "verbosity", value, NULL); */
 	g_settings_set_enum (G_SETTINGS (config), "verbosity", value);
 	g_object_notify (G_OBJECT (config), "verbosity");
-}
-
-void
-tracker_config_set_sched_idle (TrackerConfig *config,
-                               gint           value)
-{
-
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_enum (G_SETTINGS (config), "sched-idle", value);
-	g_object_notify (G_OBJECT (config), "sched-idle");
 }
 
 void
@@ -1060,88 +972,9 @@ tracker_config_set_initial_sleep (TrackerConfig *config,
 {
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
+	/* g_object_set (G_OBJECT (config), "initial-sleep", value, NULL); */
 	g_settings_set_int (G_SETTINGS (config), "initial-sleep", value);
 	g_object_notify (G_OBJECT (config), "initial-sleep");
-}
-
-void
-tracker_config_set_enable_monitors (TrackerConfig *config,
-                                    gboolean       value)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_boolean (G_SETTINGS (config), "enable-monitors", value);
-	g_object_notify (G_OBJECT (config), "enable-monitors");
-}
-
-void
-tracker_config_set_enable_writeback (TrackerConfig *config,
-                                     gboolean       value)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_boolean (G_SETTINGS (config), "enable-writeback", value);
-	g_object_notify (G_OBJECT (config), "enable-writeback");
-}
-
-void
-tracker_config_set_throttle (TrackerConfig *config,
-                             gint           value)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_int (G_SETTINGS (config), "throttle", value);
-	g_object_notify (G_OBJECT (config), "throttle");
-}
-
-void
-tracker_config_set_index_on_battery (TrackerConfig *config,
-                                     gboolean       value)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_boolean (G_SETTINGS (config), "index-on-battery", value);
-	g_object_notify (G_OBJECT (config), "index-on-battery");
-}
-
-void
-tracker_config_set_index_on_battery_first_time (TrackerConfig *config,
-                                                gboolean       value)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_boolean (G_SETTINGS (config), "index-on-battery-first-time", value);
-	g_object_notify (G_OBJECT (config), "index-on-battery-first-time");
-}
-
-void
-tracker_config_set_index_removable_devices (TrackerConfig *config,
-                                            gboolean       value)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_boolean (G_SETTINGS (config), "index-removable-devices", value);
-	g_object_notify (G_OBJECT (config), "index-removable-devices");
-}
-
-void
-tracker_config_set_index_optical_discs (TrackerConfig *config,
-                                        gboolean       value)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_boolean (G_SETTINGS (config), "index-optical-discs", value);
-	g_object_notify (G_OBJECT (config), "index-optical-discs");
-}
-
-void
-tracker_config_set_low_disk_space_limit (TrackerConfig *config,
-                                         gint           value)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_int (G_SETTINGS (config), "low-disk-space-limit", value);
-	g_object_notify (G_OBJECT (config), "low-disk-space-limit");
 }
 
 static void
@@ -1150,6 +983,15 @@ rebuild_filtered_lists (TrackerConfig *config)
 	TrackerConfigPrivate *priv;
 	GSList *old_list;
 
+	/* This function does 3 things:
+	 * 1. Convert aliases like &DESKTOP to real paths
+	 * 2. Filter and remove duplicates
+	 * 3. Save the new list to the lists we return with public API
+	 *
+	 * Importantly, we:
+	 * 1. Only notify on changes.
+	 * 2. Don't update the unfiltered lists (since they have aliases)
+	 */
 	priv = config->priv;
 
 	/* Filter single directories first, checking duplicates */
@@ -1157,9 +999,15 @@ rebuild_filtered_lists (TrackerConfig *config)
 	priv->index_single_directories = NULL;
 
 	if (priv->index_single_directories_unfiltered) {
+		GSList *mapped_dirs = dir_mapping_get (priv->index_single_directories_unfiltered, FALSE);
+
 		priv->index_single_directories =
-			tracker_path_list_filter_duplicates (priv->index_single_directories_unfiltered,
-			                                     ".", FALSE);
+			tracker_path_list_filter_duplicates (mapped_dirs, ".", FALSE);
+
+		if (mapped_dirs) {
+			g_slist_foreach (mapped_dirs, (GFunc) g_free, NULL);
+			g_slist_free (mapped_dirs);
+		}
 	}
 
 	if (!tracker_gslist_with_string_data_equal (old_list, priv->index_single_directories)) {
@@ -1176,33 +1024,34 @@ rebuild_filtered_lists (TrackerConfig *config)
 	priv->index_recursive_directories = NULL;
 
 	if (priv->index_recursive_directories_unfiltered) {
-		GSList *l, *new_list = NULL;
+		GSList *l, *checked_dirs = NULL;
+		GSList *mapped_dirs;
 
-		/* Remove elements already in single directories */
-		for (l = priv->index_recursive_directories_unfiltered; l; l = l->next) {
+		/* First, translate aliases */
+		mapped_dirs = dir_mapping_get (priv->index_recursive_directories_unfiltered, TRUE);
+
+		/* Second, remove elements already in single directories */
+		for (l = mapped_dirs; l; l = l->next) {
 			if (g_slist_find_custom (priv->index_single_directories,
 			                         l->data,
 			                         (GCompareFunc) g_strcmp0) != NULL) {
 				g_message ("Path '%s' being removed from recursive directories "
 				           "list, as it also exists in single directories list",
 				           (gchar *) l->data);
-#ifdef HAVE_MAEMO
-			} else if (g_str_has_prefix (l->data, "/usr/share/userguide/contents")) {
-				g_message ("Path '%s' being removed from recursive directories "
-				           "list, as it is handled by the userguide miner",
-				           (gchar *) l->data);
-#endif /* HAVE_MAEMO */
 			} else {
-				new_list = g_slist_prepend (new_list, l->data);
+				checked_dirs = g_slist_prepend (checked_dirs, l->data);
 			}
 		}
 
-		new_list = g_slist_reverse (new_list);
+		g_slist_free (mapped_dirs);
+		checked_dirs = g_slist_reverse (checked_dirs);
 
+		/* Third, clean up any duplicates */
 		priv->index_recursive_directories =
-			tracker_path_list_filter_duplicates (new_list, ".", TRUE);
+			tracker_path_list_filter_duplicates (checked_dirs, ".", TRUE);
 
-		g_slist_free (new_list);
+		g_slist_foreach (checked_dirs, (GFunc) g_free, NULL);
+		g_slist_free (checked_dirs);
 	}
 
 	if (!tracker_gslist_with_string_data_equal (old_list, priv->index_recursive_directories)) {
@@ -1215,9 +1064,9 @@ rebuild_filtered_lists (TrackerConfig *config)
 	}
 }
 
-void
-tracker_config_set_index_recursive_directories (TrackerConfig *config,
-                                                GSList        *roots)
+static void
+config_set_index_recursive_directories (TrackerConfig *config,
+                                        GSList        *roots)
 {
 	TrackerConfigPrivate *priv;
 	GSList *l;
@@ -1248,9 +1097,9 @@ tracker_config_set_index_recursive_directories (TrackerConfig *config,
 	rebuild_filtered_lists (config);
 }
 
-void
-tracker_config_set_index_single_directories (TrackerConfig *config,
-                                             GSList        *roots)
+static void
+config_set_index_single_directories (TrackerConfig *config,
+                                     GSList        *roots)
 {
 	TrackerConfigPrivate *priv;
 	GSList *l;
@@ -1281,9 +1130,9 @@ tracker_config_set_index_single_directories (TrackerConfig *config,
 	rebuild_filtered_lists (config);
 }
 
-void
-tracker_config_set_ignored_directories (TrackerConfig *config,
-                                        GSList        *roots)
+static void
+config_set_ignored_directories (TrackerConfig *config,
+                                GSList        *roots)
 {
 	TrackerConfigPrivate *priv;
 	GSList *l;
@@ -1317,9 +1166,9 @@ tracker_config_set_ignored_directories (TrackerConfig *config,
 	g_object_notify (G_OBJECT (config), "ignored-directories");
 }
 
-void
-tracker_config_set_ignored_directories_with_content (TrackerConfig *config,
-                                                     GSList        *roots)
+static void
+config_set_ignored_directories_with_content (TrackerConfig *config,
+                                             GSList        *roots)
 {
 	TrackerConfigPrivate *priv;
 	GSList *l;
@@ -1350,9 +1199,9 @@ tracker_config_set_ignored_directories_with_content (TrackerConfig *config,
 	g_object_notify (G_OBJECT (config), "ignored-directories-with-content");
 }
 
-void
-tracker_config_set_ignored_files (TrackerConfig *config,
-                                  GSList        *files)
+static void
+config_set_ignored_files (TrackerConfig *config,
+                          GSList        *files)
 {
 	TrackerConfigPrivate *priv;
 	GSList *l;
@@ -1384,26 +1233,6 @@ tracker_config_set_ignored_files (TrackerConfig *config,
 	config_set_ignored_file_conveniences (config);
 
 	g_object_notify (G_OBJECT (config), "ignored-files");
-}
-
-void
-tracker_config_set_crawling_interval (TrackerConfig *config,
-                                      gint           interval)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_int (G_SETTINGS (config), "crawling-interval", interval);
-	g_object_notify (G_OBJECT (config), "crawling-interval");
-}
-
-void
-tracker_config_set_removable_days_threshold (TrackerConfig *config,
-                                             gint           value)
-{
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	g_settings_set_int (G_SETTINGS (config), "removable-days-threshold", value);
-	g_object_notify (G_OBJECT (config), "removable-days-threshold");
 }
 
 /*

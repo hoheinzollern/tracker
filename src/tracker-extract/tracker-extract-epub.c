@@ -29,23 +29,91 @@
 typedef enum {
 	OPF_TAG_TYPE_UNKNOWN,
 	OPF_TAG_TYPE_TITLE,
+	OPF_TAG_TYPE_CREATED,
+
 	OPF_TAG_TYPE_AUTHOR,
-	OPF_TAG_TYPE_CREATED
+	OPF_TAG_TYPE_EDITOR,
+	OPF_TAG_TYPE_ILLUSTRATOR,
+	OPF_TAG_TYPE_CONTRIBUTOR,
+
+	OPF_TAG_TYPE_LANGUAGE,
+	OPF_TAG_TYPE_SUBJECT,
+	OPF_TAG_TYPE_DESCRIPTION,
+	OPF_TAG_TYPE_UUID,
+	OPF_TAG_TYPE_ISBN,
+	OPF_TAG_TYPE_PUBLISHER,
+	OPF_TAG_TYPE_RATING  /* calibre addition, should it be indexed? how? */
 } OPFTagType;
 
 typedef struct {
+	gchar *graph;
 	TrackerSparqlBuilder *preupdate;
 	TrackerSparqlBuilder *metadata;
+
 	OPFTagType element;
 	GList *pages;
 	guint in_metadata : 1;
 	guint in_manifest : 1;
+	gchar *savedstring;
 } OPFData;
 
 typedef struct {
 	GString *contents;
 	gsize limit;
 } OPFContentData;
+
+static inline OPFData *
+opf_data_new (TrackerExtractInfo *info)
+{
+	OPFData *data = g_slice_new0 (OPFData);
+	TrackerSparqlBuilder *builder;
+
+	builder = tracker_extract_info_get_preupdate_builder (info);
+	data->preupdate = g_object_ref (builder);
+
+	builder = tracker_extract_info_get_metadata_builder (info);
+	data->metadata = g_object_ref (builder);
+
+	data->graph = g_strdup (tracker_extract_info_get_graph (info));
+
+	return data;
+}
+
+static inline void
+opf_data_clear_saved_string (OPFData *data)
+{
+	if (!data || !data->savedstring) {
+		return;
+	}
+
+	g_free (data->savedstring);
+	data->savedstring = NULL;
+}
+
+static inline void
+opf_data_free (OPFData *data)
+{
+	if (!data) {
+		return;
+	}
+
+	g_free (data->savedstring);
+
+	g_list_foreach (data->pages, (GFunc) g_free, NULL);
+	g_list_free (data->pages);
+
+	g_free (data->graph);
+
+	if (data->metadata) {
+		g_object_unref (data->metadata);
+	}
+
+	if (data->preupdate) {
+		g_object_unref (data->preupdate);
+	}
+
+	g_slice_free (OPFData, data);
+}
 
 /* Methods to parse the container.xml file
  * pointing to the real metadata/content
@@ -86,6 +154,7 @@ opf_xml_start_element_handler (GMarkupParseContext  *context,
 {
 	OPFData *data = user_data;
 	gint i;
+	gboolean has_role_attr = FALSE;
 
 	if (g_strcmp0 (element_name, "metadata") == 0) {
 		data->in_metadata = TRUE;
@@ -97,11 +166,26 @@ opf_xml_start_element_handler (GMarkupParseContext  *context,
 			data->element = OPF_TAG_TYPE_TITLE;
 		} else if (g_strcmp0 (element_name, "dc:creator") == 0) {
 			for (i = 0; attribute_names[i] != NULL; i++) {
-				if (g_strcmp0 (attribute_names[i], "opf:role") == 0 &&
-				    g_strcmp0 (attribute_values[i], "aut") == 0) {
-					data->element = OPF_TAG_TYPE_AUTHOR;
-					break;
+				if (g_strcmp0 (attribute_names[i], "opf:file-as") == 0) {
+					g_debug ("Found creator file-as tag");
+					data->savedstring = g_strdup (attribute_values[i]);
+				} else if (g_strcmp0 (attribute_names[i], "opf:role") == 0) {
+					has_role_attr = TRUE;
+					if (g_strcmp0 (attribute_values[i], "aut") == 0) {
+						data->element = OPF_TAG_TYPE_AUTHOR;
+					} else if (g_strcmp0 (attribute_values[i], "edt") == 0) {
+						data->element = OPF_TAG_TYPE_EDITOR;
+					} else if (g_strcmp0 (attribute_values[i], "ill") == 0) {
+						data->element = OPF_TAG_TYPE_ILLUSTRATOR;
+					} else {
+						data->element = OPF_TAG_TYPE_UNKNOWN;
+						opf_data_clear_saved_string (data);
+						g_debug ("Unknown role, skipping");
+					}
 				}
+			}
+			if (!has_role_attr) {
+				data->element = OPF_TAG_TYPE_AUTHOR;
 			}
 		} else if (g_strcmp0 (element_name, "dc:date") == 0) {
 			for (i = 0; attribute_names[i] != NULL; i++) {
@@ -111,6 +195,34 @@ opf_xml_start_element_handler (GMarkupParseContext  *context,
 					break;
 				}
 			}
+		} else if (g_strcmp0 (element_name, "dc:publisher") == 0) {
+			data->element = OPF_TAG_TYPE_PUBLISHER;
+		} else if (g_strcmp0 (element_name, "dc:description") == 0) {
+			data->element = OPF_TAG_TYPE_DESCRIPTION;
+		} else if (g_strcmp0 (element_name, "dc:language") == 0) {
+			data->element = OPF_TAG_TYPE_LANGUAGE;
+		} else if (g_strcmp0 (element_name, "dc:identifier") == 0) {
+			data->element = OPF_TAG_TYPE_UUID;
+			for (i = 0; attribute_names[i] != NULL; i++) {
+				if (g_strcmp0 (attribute_names[i], "opf:scheme") == 0) {
+					if (g_ascii_strncasecmp (attribute_values[i], "isbn", 4) == 0) {
+						data->element = OPF_TAG_TYPE_ISBN;
+					}
+				}
+			}
+		/* } else if (g_strcmp0 (element_name, "meta") == 0) { */
+		/* 	for (i = 0; attribute_names[i] != NULL; i++) { */
+		/* 		if (g_strcmp0 (attribute_names[i], "name") == 0) { */
+		/* 			if (g_strcmp0 (attribute_values[i], "calibre:rating") == 0) { */
+		/* 				anybool = TRUE; */
+		/* 			} */
+		/* 		} else if (anybool && g_strcmp0 (attribute_names[i], "content")) { */
+		/* 			data->element = OPF_TAG_TYPE_RATING; */
+		/* 			data->savedstring = g_strdup (attribute_values[i]); */
+		/* 		} */
+		/* 	} */
+		/* } else if (g_strcmp0 (element_name, "dc:subject") == 0) { */
+		/* 	data->element = OPF_TAG_TYPE_SUBJECT; */
 		}
 	} else if (data->in_manifest &&
 		   g_strcmp0 (element_name, "item") == 0) {
@@ -158,10 +270,9 @@ opf_xml_text_handler (GMarkupParseContext   *context,
                       GError               **error)
 {
 	OPFData *data = user_data;
-	gchar *date;
 
 	switch (data->element) {
-	case OPF_TAG_TYPE_AUTHOR:
+	case OPF_TAG_TYPE_PUBLISHER:
 		tracker_sparql_builder_predicate (data->metadata, "nco:publisher");
 
 		tracker_sparql_builder_object_blank_open (data->metadata);
@@ -172,20 +283,209 @@ opf_xml_text_handler (GMarkupParseContext   *context,
 		tracker_sparql_builder_object_unvalidated (data->metadata, text);
 		tracker_sparql_builder_object_blank_close (data->metadata);
 		break;
+	case OPF_TAG_TYPE_AUTHOR:
+	case OPF_TAG_TYPE_EDITOR:
+	case OPF_TAG_TYPE_ILLUSTRATOR:
+	case OPF_TAG_TYPE_CONTRIBUTOR: {
+		gchar *fname, *gname, *oname;
+		const gchar *fullname = NULL;
+		gchar *role_uri = NULL;
+		const gchar *role_str = NULL;
+		gint i, j, len;
+
+		fname = NULL;
+		gname = NULL;
+		oname = NULL;
+
+		/* parse name.  may not work for dissimilar cultures. */
+		if (data->savedstring != NULL) {
+			fullname = data->savedstring;
+
+			/* <family name>, <given name> <other name> */
+			g_debug ("Parsing 'opf:file-as' attribute:'%s'", data->savedstring);
+			len = strlen (data->savedstring);
+
+			for (i = 0; i < len; i++) {
+				if (data->savedstring[i] == ',') {
+					fname = g_strndup (data->savedstring, i);
+					g_debug ("Found family name:'%s'", fname);
+
+					for (; data->savedstring[i] == ',' || data->savedstring[i] == ' '; i++);
+					j = i;
+
+					break;
+				}
+			}
+
+			if (i == len) {
+				fname = g_strdup (data->savedstring);
+				g_debug ("Found only one name");
+			} else {
+				for (; i <= len; i++) {
+					if (i == len || data->savedstring[i] == ' ') {
+						gname = g_strndup (data->savedstring + j, i - j);
+						g_debug ("Found given name:'%s'", gname);
+
+						for (; data->savedstring[i] == ',' || data->savedstring[i] == ' '; i++);
+
+						if (i != len) {
+							oname = g_strdup (data->savedstring + i);
+							g_debug ("Found other name:'%s'", oname);
+						}
+
+						break;
+					}
+				}
+			}
+		} else {
+			fullname = text;
+
+			/* <given name> <other name> <family name> */
+			g_debug ("Parsing name, no 'opf:file-as' found: '%s'", text);
+
+			j = 0;
+			len = strlen (text);
+
+			for (i = 0; i < len; i++) {
+				if (text[i] == ' ') {
+					gname = g_strndup (text, i);
+					g_debug ("Found given name:'%s'", gname);
+					j = i + 1;
+
+					break;
+				}
+			}
+
+			if (j == 0) {
+				fname = g_strdup (data->savedstring);
+				g_debug ("Found only one name:'%s'", fname);
+			} else {
+				for (i = len - 1; i >= j - 1; i--) {
+					if (text[i] == ' ') {
+						fname = g_strdup (text + i + 1);
+						g_debug ("Found family name:'%s'", fname);
+
+						if (i > j) {
+							oname = g_strndup (text + j, i - j);
+							g_debug ("Found other name:'%s'", oname);
+						}
+
+						break;
+					}
+				}
+			}
+		}
+
+		/* Role details */
+		role_uri = tracker_sparql_escape_uri_printf ("urn:artist:%s", fullname);
+
+		if (data->element == OPF_TAG_TYPE_AUTHOR) {
+			role_str = "nco:creator";
+		} else if (data->element == OPF_TAG_TYPE_EDITOR) {
+			/* Should this be nco:contributor ?
+			 * 'Editor' is a bit vague here.
+			 */
+			role_str = "nco:publisher";
+		} else if (data->element == OPF_TAG_TYPE_ILLUSTRATOR) {
+			/* There is no illustrator class, using contributor */
+			role_str = "nco:contributor";
+		} else {
+			g_assert ("Unknown role");
+		}
+
+		if (role_uri) {
+			tracker_sparql_builder_insert_open (data->preupdate, NULL);
+			if (data->graph) {
+				tracker_sparql_builder_graph_open (data->preupdate, data->graph);
+			}
+
+			tracker_sparql_builder_subject_iri (data->preupdate, role_uri);
+			tracker_sparql_builder_predicate (data->preupdate, "a");
+			tracker_sparql_builder_object (data->preupdate, "nmm:Artist");
+			tracker_sparql_builder_predicate (data->preupdate, "nmm:artistName");
+			tracker_sparql_builder_object_unvalidated (data->preupdate, fullname);
+
+			if (data->graph) {
+				tracker_sparql_builder_graph_close (data->preupdate);
+			}
+			tracker_sparql_builder_insert_close (data->preupdate);
+		}
+
+		/* Creator contact details */
+		tracker_sparql_builder_predicate (data->metadata, "nco:creator");
+		tracker_sparql_builder_object_blank_open (data->metadata);
+		tracker_sparql_builder_predicate (data->metadata, "a");
+		tracker_sparql_builder_object (data->metadata, "nco:PersonContact");
+		tracker_sparql_builder_predicate (data->metadata, "nco:fullname");
+		tracker_sparql_builder_object_unvalidated (data->metadata, fullname);
+
+		if (fname) {
+			tracker_sparql_builder_predicate (data->metadata, "nco:nameFamily");
+			tracker_sparql_builder_object_unvalidated (data->metadata, fname);
+			g_free (fname);
+		}
+
+		if (gname) {
+			tracker_sparql_builder_predicate (data->metadata, "nco:nameGiven");
+			tracker_sparql_builder_object_unvalidated (data->metadata, gname);
+			g_free (gname);
+		}
+
+		if (oname) {
+			tracker_sparql_builder_predicate (data->metadata, "nco:nameAdditional");
+			tracker_sparql_builder_object_unvalidated (data->metadata, oname);
+			g_free (oname);
+		}
+
+		if (role_uri) {
+			tracker_sparql_builder_predicate (data->metadata, role_str);
+			tracker_sparql_builder_object_iri (data->metadata, role_uri);
+			g_free (role_uri);
+		}
+
+		tracker_sparql_builder_object_blank_close (data->metadata);
+
+		break;
+	}
 	case OPF_TAG_TYPE_TITLE:
 		tracker_sparql_builder_predicate (data->metadata, "nie:title");
 		tracker_sparql_builder_object_unvalidated (data->metadata, text);
 		break;
-	case OPF_TAG_TYPE_CREATED:
-		date = tracker_date_guess (text);
+	case OPF_TAG_TYPE_CREATED: {
+		gchar *date = tracker_date_guess (text);
+
 		tracker_sparql_builder_predicate (data->metadata, "nie:contentCreated");
 		tracker_sparql_builder_object_unvalidated (data->metadata, date);
 		g_free (date);
 		break;
+	}
+	case OPF_TAG_TYPE_LANGUAGE:
+		tracker_sparql_builder_predicate (data->metadata, "nie:language");
+		tracker_sparql_builder_object_unvalidated (data->metadata, text);
+		break;
+	case OPF_TAG_TYPE_SUBJECT:
+		tracker_sparql_builder_predicate (data->metadata, "nie:subject");
+		tracker_sparql_builder_object_unvalidated (data->metadata, text);
+		break;
+	case OPF_TAG_TYPE_DESCRIPTION:
+		tracker_sparql_builder_predicate (data->metadata, "nie:description");
+		tracker_sparql_builder_object_unvalidated (data->metadata, text);
+		break;
+	case OPF_TAG_TYPE_UUID:
+		tracker_sparql_builder_predicate (data->metadata, "nie:identifier");
+		tracker_sparql_builder_object_unvalidated (data->metadata, text);
+		break;
+	case OPF_TAG_TYPE_ISBN:
+		tracker_sparql_builder_predicate (data->metadata, "nie:identifier");
+		tracker_sparql_builder_object_unvalidated (data->metadata, text);
+		break;
+	/* case OPF_TAG_TYPE_RATING: */
 	case OPF_TAG_TYPE_UNKNOWN:
 	default:
 		break;
 	}
+
+	opf_data_clear_saved_string (data);
 }
 
 /* Methods to extract XHTML text content */
@@ -297,11 +597,10 @@ extract_opf_contents (const gchar *uri,
 static gboolean
 extract_opf (const gchar          *uri,
              const gchar          *opf_path,
-             TrackerSparqlBuilder *preupdate,
-             TrackerSparqlBuilder *metadata)
+             TrackerExtractInfo   *info)
 {
 	GMarkupParseContext *context;
-	OPFData data = { 0 };
+	OPFData *data = NULL;
 	GError *error = NULL;
 	gchar *dirname, *contents;
 	GMarkupParser opf_parser = {
@@ -313,14 +612,13 @@ extract_opf (const gchar          *uri,
 
 	g_debug ("Extracting OPF file contents from EPUB '%s'", uri);
 
-	tracker_sparql_builder_predicate (metadata, "a");
-	tracker_sparql_builder_object (metadata, "nfo:TextDocument");
+	data = opf_data_new (info);
 
-	data.metadata = metadata;
-	data.preupdate = preupdate;
+	tracker_sparql_builder_predicate (data->metadata, "a");
+	tracker_sparql_builder_object (data->metadata, "nfo:TextDocument");
 
 	/* Create parsing context */
-	context = g_markup_parse_context_new (&opf_parser, 0, &data, NULL);
+	context = g_markup_parse_context_new (&opf_parser, 0, data, NULL);
 
 	/* Load the internal container file from the Zip archive,
 	 * and parse it to extract the .opf file to get metadata from
@@ -332,20 +630,20 @@ extract_opf (const gchar          *uri,
 		g_warning ("Could not get EPUB '%s' file: %s\n", opf_path,
 		           (error) ? error->message : "No error provided");
 		g_error_free (error);
+		opf_data_free (data);
 		return FALSE;
 	}
 
 	dirname = g_path_get_dirname (opf_path);
-	contents = extract_opf_contents (uri, dirname, data.pages);
+	contents = extract_opf_contents (uri, dirname, data->pages);
 	g_free (dirname);
 
 	if (contents && *contents) {
-		tracker_sparql_builder_predicate (metadata, "nie:plainTextContent");
-		tracker_sparql_builder_object_unvalidated (metadata, contents);
+		tracker_sparql_builder_predicate (data->metadata, "nie:plainTextContent");
+		tracker_sparql_builder_object_unvalidated (data->metadata, contents);
 	}
 
-	g_list_foreach (data.pages, (GFunc) g_free, NULL);
-	g_list_free (data.pages);
+	opf_data_free (data);
 	g_free (contents);
 
 	return TRUE;
@@ -367,9 +665,7 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 		return FALSE;
 	}
 
-	extract_opf (uri, opf_path,
-	             tracker_extract_info_get_preupdate_builder (info),
-	             tracker_extract_info_get_metadata_builder (info));
+	extract_opf (uri, opf_path, info);
 	g_free (opf_path);
 	g_free (uri);
 

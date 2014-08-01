@@ -20,7 +20,6 @@
 #include "config.h"
 
 #include "tracker-crawler.h"
-#include "tracker-marshal.h"
 #include "tracker-utils.h"
 
 #define TRACKER_CRAWLER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerPrivate))
@@ -56,7 +55,7 @@ struct DirectoryProcessingData {
 struct DirectoryRootInfo {
 	GFile *directory;
 	GNode *tree;
-	guint recurse : 1;
+	gint max_depth;
 
 	GQueue *directory_processing_queue;
 
@@ -79,8 +78,6 @@ struct TrackerCrawlerPrivate {
 	gdouble         throttle;
 
 	gchar          *file_attributes;
-
-	gboolean        recurse;
 
 	/* Statistics */
 	GTimer         *timer;
@@ -148,7 +145,7 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 		              G_STRUCT_OFFSET (TrackerCrawlerClass, check_directory),
 		              tracker_accumulator_check_file,
 		              NULL,
-		              tracker_marshal_BOOLEAN__OBJECT,
+		              NULL,
 		              G_TYPE_BOOLEAN,
 		              1,
 		              G_TYPE_FILE);
@@ -159,7 +156,7 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 		              G_STRUCT_OFFSET (TrackerCrawlerClass, check_file),
 		              tracker_accumulator_check_file,
 		              NULL,
-		              tracker_marshal_BOOLEAN__OBJECT,
+		              NULL,
 		              G_TYPE_BOOLEAN,
 		              1,
 		              G_TYPE_FILE);
@@ -170,7 +167,7 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 		              G_STRUCT_OFFSET (TrackerCrawlerClass, check_directory_contents),
 		              tracker_accumulator_check_file,
 		              NULL,
-		              tracker_marshal_BOOLEAN__OBJECT_POINTER,
+		              NULL,
 		              G_TYPE_BOOLEAN,
 		              2, G_TYPE_FILE, G_TYPE_POINTER);
 	signals[DIRECTORY_CRAWLED] =
@@ -179,7 +176,7 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              G_STRUCT_OFFSET (TrackerCrawlerClass, directory_crawled),
 		              NULL, NULL,
-		              tracker_marshal_VOID__OBJECT_POINTER_UINT_UINT_UINT_UINT,
+		              NULL,
 		              G_TYPE_NONE,
 		              6,
 			      G_TYPE_FILE,
@@ -194,7 +191,7 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              G_STRUCT_OFFSET (TrackerCrawlerClass, finished),
 		              NULL, NULL,
-			      g_cclosure_marshal_VOID__BOOLEAN,
+			      NULL,
 		              G_TYPE_NONE,
 		              1, G_TYPE_BOOLEAN);
 
@@ -371,9 +368,9 @@ directory_processing_data_add_child (DirectoryProcessingData *data,
 }
 
 static DirectoryRootInfo *
-directory_root_info_new (GFile    *file,
-                         gboolean  recurse,
-                         gchar    *file_attributes)
+directory_root_info_new (GFile *file,
+                         gint   max_depth,
+                         gchar *file_attributes)
 {
 	DirectoryRootInfo *info;
 	DirectoryProcessingData *dir_info;
@@ -381,7 +378,7 @@ directory_root_info_new (GFile    *file,
 	info = g_slice_new0 (DirectoryRootInfo);
 
 	info->directory = g_object_ref (file);
-	info->recurse = recurse;
+	info->max_depth = max_depth;
 	info->directory_processing_queue = g_queue_new ();
 
 	info->tree = g_node_new (g_object_ref (file));
@@ -462,19 +459,13 @@ process_func (gpointer data)
 	}
 
 	if (dir_data) {
+		gint depth = g_node_depth (dir_data->node) - 1;
+		gboolean iterate;
+
+		iterate = (info->max_depth >= 0) ? depth < info->max_depth : TRUE;
+
 		/* One directory inside the tree hierarchy is being inspected */
 		if (!dir_data->was_inspected) {
-			gboolean iterate;
-
-			if (G_NODE_IS_ROOT (dir_data->node)) {
-				iterate = check_directory (crawler, info, dir_data->node->data);
-			} else {
-				/* Directory has been already checked in the block below, so
-				 * so obey the settings for the current directory root.
-				 */
-				iterate = info->recurse;
-			}
-
 			dir_data->was_inspected = TRUE;
 
 			/* Crawler may have been already stopped while we were waiting for the
@@ -512,7 +503,7 @@ process_func (gpointer data)
 								  g_object_ref (child_data->child));
 			}
 
-			if (info->recurse && priv->is_running &&
+			if (iterate && priv->is_running &&
 			    child_node && child_data->is_dir) {
 				DirectoryProcessingData *child_dir_data;
 
@@ -840,7 +831,7 @@ file_enumerate_children (TrackerCrawler          *crawler,
 gboolean
 tracker_crawler_start (TrackerCrawler *crawler,
                        GFile          *file,
-                       gboolean        recurse)
+                       gint            max_depth)
 {
 	TrackerCrawlerPrivate *priv;
 	DirectoryRootInfo *info;
@@ -851,11 +842,13 @@ tracker_crawler_start (TrackerCrawler *crawler,
 	priv = crawler->priv;
 
 	if (!g_file_query_exists (file, NULL)) {
+		/* This shouldn't happen, unless the removal/unmount notification
+		 * didn't yet reach the TrackerFileNotifier.
+		 */
 		return FALSE;
 	}
 
 	priv->was_started = TRUE;
-	priv->recurse = recurse;
 
 	/* Time the event */
 	if (priv->timer) {
@@ -872,9 +865,21 @@ tracker_crawler_start (TrackerCrawler *crawler,
 	priv->is_running = TRUE;
 	priv->is_finished = FALSE;
 
-	info = directory_root_info_new (file, recurse, priv->file_attributes);
-	g_queue_push_tail (priv->directories, info);
+	info = directory_root_info_new (file, max_depth, priv->file_attributes);
 
+	if (!check_directory (crawler, info, file)) {
+		directory_root_info_free (info);
+
+		g_timer_destroy (priv->timer);
+		priv->timer = NULL;
+
+		priv->is_running = FALSE;
+		priv->is_finished = TRUE;
+
+		return FALSE;
+	}
+
+	g_queue_push_tail (priv->directories, info);
 	process_func_start (crawler);
 
 	return TRUE;
@@ -1029,6 +1034,6 @@ tracker_crawler_get_file_info (TrackerCrawler *crawler,
 	g_return_val_if_fail (TRACKER_IS_CRAWLER (crawler), NULL);
 	g_return_val_if_fail (G_IS_FILE (file), NULL);
 
-	info = g_object_get_qdata (G_OBJECT (file), file_info_quark);
+	info = g_object_steal_qdata (G_OBJECT (file), file_info_quark);
 	return info;
 }

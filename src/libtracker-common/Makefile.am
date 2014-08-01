@@ -1,5 +1,3 @@
-include $(top_srcdir)/Makefile.decl
-
 AM_CPPFLAGS = \
 	$(BUILD_CFLAGS) \
 	-I$(top_srcdir)/src \
@@ -26,11 +24,12 @@ libtracker_common_la_SOURCES = \
 	tracker-keyfile-object.c \
 	tracker-log.c \
 	tracker-sched.c \
+	tracker-storage.c \
 	tracker-type-utils.c \
 	tracker-utils.c \
 	tracker-crc32.c \
 	tracker-locale.c \
-	tracker-media-art.c
+	tracker-miner-locale.c
 
 noinst_HEADERS = \
 	tracker-dbus.h \
@@ -45,11 +44,12 @@ noinst_HEADERS = \
 	tracker-keyfile-object.h \
 	tracker-ontologies.h \
 	tracker-sched.h \
+	tracker-storage.h \
 	tracker-type-utils.h \
 	tracker-utils.h \
 	tracker-crc32.h \
 	tracker-locale.h \
-	tracker-media-art.h
+	tracker-miner-locale.h
 
 if HAVE_TRACKER_FTS
 libtracker_common_la_SOURCES += tracker-language.c
@@ -57,12 +57,15 @@ noinst_HEADERS += tracker-language.h
 endif
 
 if HAVE_MEEGOTOUCH
-libtracker_common_la_SOURCES += tracker-locale-gconfdbus.c
-noinst_HEADERS += tracker-locale-gconfdbus.h
+libtracker_common_la_SOURCES += 
+	tracker-locale-gconfdbus.c \
+	tracker-locale-gconfdbus.h \
+	tracker-meego.cpp \
+	tracker-meego.h
+noinst_HEADERS += \
+	tracker-locale-gconfdbus.h \
+	tracker-meego.h
 endif
-
-libtracker_common_la_LDFLAGS = \
-	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
 libtracker_common_la_LIBADD = \
 	$(BUILD_LIBS) \
@@ -73,17 +76,6 @@ if HAVE_TRACKER_FTS
 libtracker_common_la_LIBADD += $(top_builddir)/src/libstemmer/libstemmer.la
 endif
 
-marshal_sources = \
-	tracker-marshal.h \
-	tracker-marshal.c
-
-tracker-marshal.h: tracker-marshal.list
-	$(AM_V_GEN)$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --header > $@
-
-tracker-marshal.c: tracker-marshal.list
-	$(AM_V_GEN)echo "#include \"tracker-marshal.h\"" > $@ && \
-		   $(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --body >> $@
-
 tracker-enum-types.h: tracker-enum-types.h.template $(NOINST_H_FILES)
 	$(AM_V_GEN) (cd $(srcdir) && $(GLIB_MKENUMS) --template tracker-enum-types.h.template $(noinst_HEADERS)) > $@
 
@@ -92,17 +84,14 @@ tracker-enum-types.c: tracker-enum-types.c.template $(NOINST_H_FILES)
 
 
 BUILT_SOURCES =	                                       \
-	$(marshal_sources)                             \
 	tracker-enum-types.c                           \
 	tracker-enum-types.h
 
 CLEANFILES =                                           \
-	$(marshal_sources)                             \
 	tracker-enum-types.c                           \
 	tracker-enum-types.h
 
 EXTRA_DIST =                                           \
-	tracker-marshal.list                           \
 	libtracker-common.vapi                         \
 	tracker-enum-types.c.template                  \
 	tracker-enum-types.h.template

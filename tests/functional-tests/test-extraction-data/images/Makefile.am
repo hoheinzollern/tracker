@@ -1,5 +1,3 @@
-include $(top_srcdir)/Makefile.decl
-
 imagedir = $(datadir)/tracker-tests/test-extraction-data/images
 
 image_DATA = \
@@ -39,5 +37,5 @@ endif
 EXTRA_DIST = \
 	$(image_DATA) \
 	$(gifs) \
-	$(tiffs \
+	$(tiffs) \
 	$(jpegs)

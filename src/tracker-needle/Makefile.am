@@ -1,16 +1,15 @@
-include $(top_srcdir)/Makefile.decl
-
 bin_PROGRAMS = tracker-needle tracker-scope
 
 AM_VALAFLAGS = \
 	--pkg gtk+-3.0 --pkg gio-2.0 --pkg unity \
-	$(BUILD_fVALAFLAGS) \
+	$(BUILD_VALAFLAGS) \
 	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi \
 	config.vapi
 
-AM_CPPFLAGS =                                      \
-	$(BUILD_CFLAGS)                                \
+AM_CPPFLAGS =                                          \
+	$(BUILD_VALACFLAGS)                            \
 	-D_XOPEN_SOURCE                                \
+	-D_XOPEN_SOURCE_EXTENDED                       \
 	-I$(top_srcdir)/src                            \
 	-I$(top_builddir)/src                          \
 	-DTRACKER_UI_DIR=\"$(datadir)/tracker/\"       \
@@ -52,6 +51,9 @@ scope_DATA = tracker-scope.scope
 servicedir = /usr/share/dbus-1/services
 service_DATA = tracker-scope.service
 
+appdatadir = $(datadir)/appdata
+appdata_DATA = tracker-needle.appdata.xml
+
 BUILT_SOURCES = \
 	tracker_needle_vala.stamp
 
@@ -63,5 +65,6 @@ EXTRA_DIST = \
 	$(desktop_DATA) \
 	$(scope_DATA) \
 	$(service_DATA) \
+	$(appdata_DATA) \
 	config.vapi
 

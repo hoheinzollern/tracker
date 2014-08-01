@@ -1,4 +1,0 @@
-[ExtractorRule]
-ModulePath=@modulesdir@/libextract-flac.so
-MimeTypes=audio/x-flac
-

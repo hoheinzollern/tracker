@@ -46,6 +46,7 @@
 #include "tracker-db-manager.h"
 #include "tracker-db-interface-sqlite.h"
 #include "tracker-db-interface.h"
+#include "tracker-data-manager.h"
 
 /* ZLib buffer settings */
 #define ZLIB_BUF_SIZE                 8192
@@ -57,7 +58,7 @@
 #define TRACKER_DB_PAGE_SIZE_DONT_SET -1
 
 /* Set current database version we are working with */
-#define TRACKER_DB_VERSION_NOW        TRACKER_DB_VERSION_0_9_38
+#define TRACKER_DB_VERSION_NOW        TRACKER_DB_VERSION_0_15_2
 #define TRACKER_DB_VERSION_FILE       "db-version.txt"
 #define TRACKER_DB_LOCALE_FILE        "db-locale.txt"
 
@@ -71,7 +72,6 @@
 typedef enum {
 	TRACKER_DB_LOCATION_DATA_DIR,
 	TRACKER_DB_LOCATION_USER_DATA_DIR,
-	TRACKER_DB_LOCATION_SYS_TMP_DIR,
 } TrackerDBLocation;
 
 typedef enum {
@@ -98,7 +98,8 @@ typedef enum {
 	TRACKER_DB_VERSION_0_9_21,  /* Fix for NB#186055 */
 	TRACKER_DB_VERSION_0_9_24,  /* nmo:PhoneMessage class */
 	TRACKER_DB_VERSION_0_9_34,  /* ontology cache */
-	TRACKER_DB_VERSION_0_9_38   /* nie:url an inverse functional property */
+	TRACKER_DB_VERSION_0_9_38,  /* nie:url an inverse functional property */
+	TRACKER_DB_VERSION_0_15_2   /* fts4 */
 } TrackerDBVersion;
 
 typedef struct {
@@ -155,25 +156,16 @@ static gboolean              initialized;
 static gboolean              locations_initialized;
 static gchar                *data_dir = NULL;
 static gchar                *user_data_dir = NULL;
-static gchar                *sys_tmp_dir = NULL;
 static gchar                *in_use_filename = NULL;
 static gpointer              db_type_enum_class_pointer;
 static TrackerDBManagerFlags old_flags = 0;
 static guint                 s_cache_size;
 static guint                 u_cache_size;
 
-#if GLIB_CHECK_VERSION (2,31,0)
 static GPrivate              interface_data_key = G_PRIVATE_INIT ((GDestroyNotify)g_object_unref);
-#else
-static GStaticPrivate        interface_data_key = G_STATIC_PRIVATE_INIT;
-#endif
 
 /* mutex used by singleton connection in libtracker-direct, not used by tracker-store */
-#if GLIB_CHECK_VERSION (2,31,0)
 static GMutex                global_mutex;
-#else
-static GStaticMutex          global_mutex = G_STATIC_MUTEX_INIT;
-#endif
 
 static TrackerDBInterface   *global_iface;
 
@@ -185,8 +177,6 @@ location_to_directory (TrackerDBLocation location)
 		return data_dir;
 	case TRACKER_DB_LOCATION_USER_DATA_DIR:
 		return user_data_dir;
-	case TRACKER_DB_LOCATION_SYS_TMP_DIR:
-		return sys_tmp_dir;
 	default:
 		return NULL;
 	};
@@ -247,7 +237,6 @@ db_set_params (TrackerDBInterface   *iface,
 #else
 		tracker_db_interface_execute_query (iface, NULL, "PRAGMA synchronous = OFF;");
 #endif /* DISABLE_JOURNAL */
-		tracker_db_interface_execute_query (iface, NULL, "PRAGMA count_changes = 0;");
 		tracker_db_interface_execute_query (iface, NULL, "PRAGMA temp_store = FILE;");
 		tracker_db_interface_execute_query (iface, NULL, "PRAGMA encoding = \"UTF-8\"");
 		tracker_db_interface_execute_query (iface, NULL, "PRAGMA auto_vacuum = 0;");
@@ -664,6 +653,14 @@ tracker_db_manager_locale_changed (void)
 	gchar *current_locale;
 	gboolean changed;
 
+	/* As a special case, we allow calling this API function before
+	 * tracker_data_manager_init() has been called, so it can be used
+	 * to check for locale mismatches for initializing the database.
+	 */
+	if (!locations_initialized) {
+		tracker_db_manager_init_locations ();
+	}
+
 	/* Get current collation locale */
 	current_locale = tracker_locale_get (TRACKER_LOCALE_COLLATE);
 
@@ -790,11 +787,10 @@ tracker_db_manager_init_locations (void)
 {
 	const gchar *dir;
 	guint i;
-	gchar *filename;
 
-	filename = g_strdup_printf ("tracker-%s", g_get_user_name ());
-	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
-	g_free (filename);
+	if (locations_initialized) {
+		return;
+	}
 
 	user_data_dir = g_build_filename (g_get_user_data_dir (),
 	                                  "tracker",
@@ -862,7 +858,6 @@ tracker_db_manager_init (TrackerDBManagerFlags   flags,
 {
 	GType etype;
 	TrackerDBVersion version;
-	gchar *filename;
 	const gchar *dir;
 	gboolean need_reindex;
 	guint i;
@@ -899,21 +894,7 @@ tracker_db_manager_init (TrackerDBManagerFlags   flags,
 
 	old_flags = flags;
 
-	filename = g_strdup_printf ("tracker-%s", g_get_user_name ());
-	g_free (sys_tmp_dir);
-	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
-	g_free (filename);
-
-	g_free (user_data_dir);
-	user_data_dir = g_build_filename (g_get_user_data_dir (),
-	                                  "tracker",
-	                                  "data",
-	                                  NULL);
-
-	g_free (data_dir);
-	data_dir = g_build_filename (g_get_user_cache_dir (),
-	                             "tracker",
-	                             NULL);
+	tracker_db_manager_init_locations ();
 
 	g_free (in_use_filename);
 	in_use_filename = g_build_filename (g_get_user_data_dir (),
@@ -930,7 +911,6 @@ tracker_db_manager_init (TrackerDBManagerFlags   flags,
 
 		g_mkdir_with_parents (data_dir, 00755);
 		g_mkdir_with_parents (user_data_dir, 00755);
-		g_mkdir_with_parents (sys_tmp_dir, 00755);
 
 		g_message ("Checking database version");
 
@@ -950,12 +930,6 @@ tracker_db_manager_init (TrackerDBManagerFlags   flags,
 	g_message ("Checking database files exist");
 
 	for (i = 1; i < G_N_ELEMENTS (dbs); i++) {
-		/* Fill absolute path for the database */
-
-		dir = location_to_directory (dbs[i].location);
-		g_free (dbs[i].abs_filename);
-		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
-
 		/* Check we have each database in place, if one is
 		 * missing, we reindex.
 		 */
@@ -1263,13 +1237,8 @@ tracker_db_manager_init (TrackerDBManagerFlags   flags,
 	s_cache_size = select_cache_size;
 	u_cache_size = update_cache_size;
 
-	if ((flags & TRACKER_DB_MANAGER_READONLY) == 0) {
-#if GLIB_CHECK_VERSION (2,31,0)
+	if ((flags & TRACKER_DB_MANAGER_READONLY) == 0)
 		g_private_replace (&interface_data_key, resources_iface);
-#else
-		g_static_private_set (&interface_data_key, resources_iface, (GDestroyNotify) g_object_unref);
-#endif
-	}
 
 	return TRUE;
 }
@@ -1299,8 +1268,6 @@ tracker_db_manager_shutdown (void)
 	data_dir = NULL;
 	g_free (user_data_dir);
 	user_data_dir = NULL;
-	g_free (sys_tmp_dir);
-	sys_tmp_dir = NULL;
 
 	if (global_iface) {
 		/* libtracker-direct */
@@ -1309,11 +1276,7 @@ tracker_db_manager_shutdown (void)
 	}
 
 	/* shutdown db interface in all threads */
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_private_replace (&interface_data_key, NULL);
-#else
-	g_static_private_free (&interface_data_key);
-#endif
 
 	/* Since we don't reference this enum anywhere, we do
 	 * it here to make sure it exists when we call
@@ -1523,11 +1486,7 @@ tracker_db_manager_get_db_interface (void)
 		return global_iface;
 	}
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	interface = g_private_get (&interface_data_key);
-#else
-	interface = g_static_private_get (&interface_data_key);
-#endif
 
 	/* Ensure the interface is there */
 	if (!interface) {
@@ -1540,8 +1499,7 @@ tracker_db_manager_get_db_interface (void)
 			return NULL;
 		}
 
-		tracker_db_interface_sqlite_fts_init (interface, FALSE);
-
+		tracker_data_manager_init_fts (interface, FALSE);
 
 		tracker_db_interface_set_max_stmt_cache_size (interface,
 		                                              TRACKER_DB_STATEMENT_CACHE_TYPE_SELECT,
@@ -1551,11 +1509,7 @@ tracker_db_manager_get_db_interface (void)
 		                                              TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE,
 		                                              u_cache_size);
 
-#if GLIB_CHECK_VERSION (2,31,0)
 		g_private_set (&interface_data_key, interface);
-#else
-		g_static_private_set (&interface_data_key, interface, (GDestroyNotify)g_object_unref);
-#endif
 	}
 
 	return interface;
@@ -1825,29 +1779,17 @@ tracker_db_manager_set_need_mtime_check (gboolean needed)
 void
 tracker_db_manager_lock (void)
 {
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_lock (&global_mutex);
-#else
-	g_static_mutex_lock (&global_mutex);
-#endif
 }
 
 gboolean
 tracker_db_manager_trylock (void)
 {
-#if GLIB_CHECK_VERSION (2,31,0)
 	return g_mutex_trylock (&global_mutex);
-#else
-	return g_static_mutex_trylock (&global_mutex);
-#endif
 }
 
 void
 tracker_db_manager_unlock (void)
 {
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_unlock (&global_mutex);
-#else
-	g_static_mutex_unlock (&global_mutex);
-#endif
 }

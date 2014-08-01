@@ -21,21 +21,24 @@
 
 #include "config.h"
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/select.h>
+#include <sys/wait.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
-#include <sys/mman.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/poppler.h>
+
+#include <gio/gunixoutputstream.h>
+#include <gio/gunixinputstream.h>
 
 #include <libtracker-common/tracker-date-time.h>
 #include <libtracker-common/tracker-utils.h>
@@ -44,6 +47,9 @@
 #include <libtracker-extract/tracker-extract.h>
 
 #include "tracker-main.h"
+
+/* Time in seconds before we stop processing content */
+#define EXTRACTION_PROCESS_TIMEOUT 10
 
 typedef struct {
 	gchar *title;
@@ -149,6 +155,7 @@ read_toc (PopplerIndexIter  *index,
 			case POPPLER_ACTION_GOTO_REMOTE:
 			case POPPLER_ACTION_RENDITION:
 			case POPPLER_ACTION_OCG_STATE:
+			case POPPLER_ACTION_JAVASCRIPT:
 				/* Do nothing */
 				break;
 		}
@@ -187,28 +194,27 @@ read_outline (PopplerDocument      *document,
 }
 
 static gchar *
-extract_content (PopplerDocument *document,
-                 gsize            n_bytes)
+extract_content_text (PopplerDocument *document,
+                      gsize            n_bytes)
 {
-	gint n_pages, i = 0;
 	GString *string;
 	GTimer *timer;
-	gsize remaining_bytes = n_bytes;
+	gsize remaining_bytes;
+	gint n_pages, i;
+	gdouble elapsed;
 
 	n_pages = poppler_document_get_n_pages (document);
 	string = g_string_new ("");
 	timer = g_timer_new ();
 
-	while (i < n_pages &&
-	       remaining_bytes > 0 &&
-	       g_timer_elapsed (timer, NULL) < 5) {
+	for (i = 0, remaining_bytes = n_bytes, elapsed = g_timer_elapsed (timer, NULL);
+	     i < n_pages && remaining_bytes > 0 && elapsed < EXTRACTION_PROCESS_TIMEOUT;
+	     i++, elapsed = g_timer_elapsed (timer, NULL)) {
 		PopplerPage *page;
 		gsize written_bytes = 0;
 		gchar *text;
 
 		page = poppler_document_get_page (document, i);
-		i++;
-
 		text = poppler_page_get_text (page);
 
 		if (!text) {
@@ -233,9 +239,16 @@ extract_content (PopplerDocument *document,
 		g_object_unref (page);
 	}
 
-	g_debug ("Content extraction finished: %d/%d pages indexed in %lf seconds, "
+	if (elapsed >= EXTRACTION_PROCESS_TIMEOUT) {
+		g_debug ("Extraction timed out, %d seconds reached", EXTRACTION_PROCESS_TIMEOUT);
+	}
+
+	g_debug ("Content extraction finished: %d/%d pages indexed in %2.2f seconds, "
 	         "%" G_GSIZE_FORMAT " bytes extracted",
-	         i, n_pages, g_timer_elapsed (timer, NULL), (n_bytes - remaining_bytes));
+	         i,
+	         n_pages,
+	         g_timer_elapsed (timer, NULL),
+	         (n_bytes - remaining_bytes));
 
 	g_timer_destroy (timer);
 
@@ -302,8 +315,6 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	gsize len;
 	struct stat st;
 
-	g_type_init ();
-
 	metadata = tracker_extract_info_get_metadata_builder (info);
 	preupdate = tracker_extract_info_get_preupdate_builder (info);
 	graph = tracker_extract_info_get_graph (info);
@@ -311,10 +322,7 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	file = tracker_extract_info_get_file (info);
 	filename = g_file_get_path (file);
 
-	fd = g_open (filename, O_RDONLY | O_NOATIME, 0);
-	if (fd == -1 && errno == EPERM) {
-		fd = g_open (filename, O_RDONLY, 0);
-	}
+	fd = tracker_file_open_fd (filename);
 
 	if (fd == -1) {
 		g_warning ("Could not open pdf file '%s': %s\n",
@@ -338,7 +346,7 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 		len = 0;
 	} else {
 		contents = (gchar *) mmap (NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-		if (contents == NULL) {
+		if (contents == NULL || contents == MAP_FAILED) {
 			g_warning ("Could not mmap pdf file '%s': %s\n",
 			           filename,
 			           g_strerror (errno));
@@ -727,7 +735,7 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 
 	config = tracker_main_get_config ();
 	n_bytes = tracker_config_get_max_bytes (config);
-	content = extract_content (document, n_bytes);
+	content = extract_content_text (document, n_bytes);
 
 	if (content) {
 		tracker_sparql_builder_predicate (metadata, "nie:plainTextContent");

@@ -63,6 +63,7 @@ struct _TrackerMiner {
  * @resumed: Called when the miner is told to resume activity.
  * @progress: progress.
  * @ignore_next_update: Called after ignore on next update event happens.
+ * @padding: Reserved for future API improvements.
  *
  * Virtual methods left to implement.
  **/
@@ -82,6 +83,9 @@ typedef struct {
 
 	void (* ignore_next_update) (TrackerMiner *miner,
 	                             const GStrv   urls);
+
+	/* <Private> */
+	gpointer padding[10];
 } TrackerMinerClass;
 
 GType                    tracker_miner_get_type            (void) G_GNUC_CONST;

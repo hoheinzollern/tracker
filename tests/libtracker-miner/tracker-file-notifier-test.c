@@ -18,9 +18,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
+
+#include "config.h"
+
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <locale.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -60,6 +64,14 @@ typedef enum {
 	OPERATION_DELETE,
 	OPERATION_MOVE
 } OperationType;
+
+#if GLIB_MINOR_VERSION < 30
+gchar *
+g_mkdtemp (gchar *tmpl)
+{
+	return mkdtemp (tmpl);
+}
+#endif
 
 #define test_add(path,fun)	  \
 	g_test_add (path, \
@@ -337,10 +349,14 @@ test_common_context_expect_results (TestCommonContext   *fixture,
 			id = g_timeout_add_seconds (max_timeout,
 						    (GSourceFunc) timeout_expired_cb,
 						    fixture);
+			fixture->expire_timeout_id = id;
 		}
 
 		g_main_loop_run (fixture->main_loop);
-		g_source_remove (id);
+
+		if (max_timeout != 0 && fixture->expire_timeout_id != 0) {
+			g_source_remove (fixture->expire_timeout_id);
+		}
 	}
 
 	for (i = 0; i < n_results; i++) {
@@ -408,7 +424,7 @@ test_file_notifier_crawling_non_recursive (TestCommonContext *fixture,
 	CREATE_UPDATE_FILE (fixture, "non-recursive/bbb");
 
 	test_common_context_index_dir (fixture, "non-recursive",
-	                               TRACKER_DIRECTORY_FLAG_NONE);
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 
 	tracker_file_notifier_start (fixture->notifier);
 
@@ -435,7 +451,8 @@ test_file_notifier_crawling_recursive (TestCommonContext *fixture,
 	CREATE_UPDATE_FILE (fixture, "recursive/bbb");
 
 	test_common_context_index_dir (fixture, "recursive",
-	                               TRACKER_DIRECTORY_FLAG_RECURSE);
+	                               TRACKER_DIRECTORY_FLAG_RECURSE |
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 
 	tracker_file_notifier_start (fixture->notifier);
 
@@ -469,9 +486,11 @@ test_file_notifier_crawling_non_recursive_within_recursive (TestCommonContext *f
 	CREATE_UPDATE_FILE (fixture, "recursive/folder/non-recursive/folder/ddd");
 
 	test_common_context_index_dir (fixture, "recursive",
-	                               TRACKER_DIRECTORY_FLAG_RECURSE);
+	                               TRACKER_DIRECTORY_FLAG_RECURSE |
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 	test_common_context_index_dir (fixture, "recursive/folder/non-recursive",
-	                               TRACKER_DIRECTORY_FLAG_NONE);
+	                               TRACKER_DIRECTORY_FLAG_NONE |
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 
 	tracker_file_notifier_start (fixture->notifier);
 
@@ -505,9 +524,11 @@ test_file_notifier_crawling_recursive_within_non_recursive (TestCommonContext *f
 	CREATE_UPDATE_FILE (fixture, "non-recursive/folder/recursive/folder/ddd");
 
 	test_common_context_index_dir (fixture, "non-recursive/folder/recursive",
-	                               TRACKER_DIRECTORY_FLAG_RECURSE);
+	                               TRACKER_DIRECTORY_FLAG_RECURSE |
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 	test_common_context_index_dir (fixture, "non-recursive",
-	                               TRACKER_DIRECTORY_FLAG_NONE);
+	                               TRACKER_DIRECTORY_FLAG_NONE |
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 
 	tracker_file_notifier_start (fixture->notifier);
 
@@ -539,9 +560,11 @@ test_file_notifier_crawling_ignore_within_recursive (TestCommonContext *fixture,
 	CREATE_UPDATE_FILE (fixture, "recursive/folder/ignore/folder/ddd");
 
 	test_common_context_index_dir (fixture, "recursive",
-	                               TRACKER_DIRECTORY_FLAG_RECURSE);
+	                               TRACKER_DIRECTORY_FLAG_RECURSE |
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 	test_common_context_index_dir (fixture, "recursive/folder/ignore",
-	                               TRACKER_DIRECTORY_FLAG_IGNORE);
+	                               TRACKER_DIRECTORY_FLAG_IGNORE |
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 
 	tracker_file_notifier_start (fixture->notifier);
 
@@ -646,7 +669,8 @@ test_file_notifier_monitor_updates_non_recursive (TestCommonContext *fixture,
 	CREATE_UPDATE_FILE (fixture, "non-recursive/bbb");
 
 	test_common_context_index_dir (fixture, "non-recursive",
-	                               TRACKER_DIRECTORY_FLAG_MONITOR);
+	                               TRACKER_DIRECTORY_FLAG_MONITOR |
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 
 	tracker_file_notifier_start (fixture->notifier);
 	test_common_context_expect_results (fixture, expected_results,
@@ -693,7 +717,8 @@ test_file_notifier_monitor_updates_recursive (TestCommonContext *fixture,
 
 	test_common_context_index_dir (fixture, "recursive",
 	                               TRACKER_DIRECTORY_FLAG_RECURSE |
-	                               TRACKER_DIRECTORY_FLAG_MONITOR);
+	                               TRACKER_DIRECTORY_FLAG_MONITOR |
+	                               TRACKER_DIRECTORY_FLAG_CHECK_MTIME);
 
 	tracker_file_notifier_start (fixture->notifier);
 	test_common_context_expect_results (fixture, expected_results,
@@ -722,7 +747,8 @@ gint
 main (gint    argc,
       gchar **argv)
 {
-	g_type_init ();
+	setlocale (LC_ALL, "");
+
 	g_test_init (&argc, &argv, NULL);
 
 	g_test_message ("Testing file notifier");

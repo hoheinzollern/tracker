@@ -1,24 +1,27 @@
 include $(top_srcdir)/Makefile.decl
 
-noinst_PROGRAMS = $(TEST_PROGS)
+noinst_PROGRAMS += $(test_programs)
 
-TEST_PROGS +=                                          \
+test_programs = \
 	tracker-test-utils                             \
 	tracker-test-xmp			       \
 	tracker-extract-info-test		       \
-	tracker-exif-test			       \
 	tracker-guarantee-test
+
+if HAVE_EXIF
+test_programs += tracker-exif-test
+endif
 
 if HAVE_IPTC
 # This test also requires libjpeg...
-TEST_PROGS += tracker-iptc-test
+test_programs += tracker-iptc-test
 endif
 
 if HAVE_ENCA
-TEST_PROGS += tracker-encoding
+test_programs += tracker-encoding
 else
 if HAVE_MEEGOTOUCH
-TEST_PROGS += tracker-encoding
+test_programs += tracker-encoding
 endif
 endif
 
@@ -34,7 +37,7 @@ AM_CPPFLAGS =                                          \
 LDADD =                                                \
 	$(top_builddir)/tests/common/libtracker-testcommon.la \
 	$(top_builddir)/src/libtracker-common/libtracker-common.la \
-	$(top_builddir)/src/libtracker-extract/libtracker-extract-@TRACKER_API_VERSION@.la \
+	$(top_builddir)/src/libtracker-extract/libtracker-extract.la \
 	$(top_builddir)/src/libtracker-sparql-backend/libtracker-sparql-@TRACKER_API_VERSION@.la \
 	$(BUILD_LIBS)                                  \
 	$(LIBTRACKER_EXTRACT_LIBS)
@@ -55,7 +58,8 @@ tracker_iptc_test_SOURCES = tracker-iptc-test.c
 tracker_iptc_test_LDADD = $(LDADD) $(LIBJPEG_LIBS)
 tracker_iptc_test_CFLAGS = $(LIBJPEG_CFLAGS)
 
-EXTRA_DIST = encoding-detect.bin 	\
+EXTRA_DIST += \
+	encoding-detect.bin             \
 	areas.xmp 			\
 	areas-with-contacts.xmp 	\
 	areas-ns.xmp 			\

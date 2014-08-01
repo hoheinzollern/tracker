@@ -1,0 +1,4 @@
+[ExtractorRule]
+ModulePath=libextract-abw.so
+MimeTypes=application/x-abiword
+FallbackRdfTypes=nfo:Document

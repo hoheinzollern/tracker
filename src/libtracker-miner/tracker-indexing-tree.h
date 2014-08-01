@@ -58,6 +58,7 @@ struct _TrackerIndexingTree
  * @directory_added: Called when a directory is added.
  * @directory_removed: Called when a directory is removed.
  * @directory_updated: Called when a directory is updated.
+ * @padding: Reserved for future API improvements.
  *
  * Class for the #TrackerIndexingTree.
  */
@@ -70,6 +71,9 @@ typedef struct {
 	                            GFile               *directory);
 	void (* directory_updated) (TrackerIndexingTree *indexing_tree,
 	                            GFile               *directory);
+
+	/* <Private> */
+	gpointer padding[10];
 } TrackerIndexingTreeClass;
 
 GType                 tracker_indexing_tree_get_type (void) G_GNUC_CONST;

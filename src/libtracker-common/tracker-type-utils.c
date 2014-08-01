@@ -21,6 +21,7 @@
 #include "config.h"
 
 #define _XOPEN_SOURCE
+#define _XOPEN_SOURCE_EXTENDED 1	/* strcasecmp is XPG4v2 */
 #include <time.h>
 
 #include <strings.h>
@@ -137,7 +138,9 @@ tracker_string_list_to_gslist (gchar **strv,
 	gsize   i;
 	gsize   size_used;
 
-	g_return_val_if_fail (strv != NULL, NULL);
+	if (!strv) {
+		return NULL;
+	}
 
 	if (size < 1) {
 		size_used = g_strv_length (strv);
@@ -167,7 +170,9 @@ tracker_string_list_to_string (gchar **strv,
 	gsize    i;
 	gsize    size_used;
 
-	g_return_val_if_fail (strv != NULL, NULL);
+	if (!strv) {
+		return NULL;
+	}
 
 	if (size < 1) {
 		size_used = g_strv_length (strv);

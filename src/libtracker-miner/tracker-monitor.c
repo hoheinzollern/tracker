@@ -23,8 +23,14 @@
 #include <string.h>
 #include <gio/gio.h>
 
+#if defined (__OpenBSD__) || defined (__FreeBSD__) || defined (__NetBSD__) || defined (__APPLE__)
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#define TRACKER_MONITOR_KQUEUE
+#endif
+
 #include "tracker-monitor.h"
-#include "tracker-marshal.h"
 
 #define TRACKER_MONITOR_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_MONITOR, TrackerMonitorPrivate))
 
@@ -119,6 +125,7 @@ static void           tracker_monitor_get_property (GObject        *object,
                                                     guint           prop_id,
                                                     GValue         *value,
                                                     GParamSpec     *pspec);
+static guint          get_kqueue_limit             (void);
 static guint          get_inotify_limit            (void);
 static GFileMonitor * directory_monitor_new        (TrackerMonitor *monitor,
                                                     GFile          *file);
@@ -152,7 +159,7 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              0,
 		              NULL, NULL,
-		              tracker_marshal_VOID__OBJECT_BOOLEAN,
+		              NULL,
 		              G_TYPE_NONE,
 		              2,
 		              G_TYPE_OBJECT,
@@ -163,7 +170,7 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              0,
 		              NULL, NULL,
-		              tracker_marshal_VOID__OBJECT_BOOLEAN,
+		              NULL,
 		              G_TYPE_NONE,
 		              2,
 		              G_TYPE_OBJECT,
@@ -174,7 +181,7 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              0,
 		              NULL, NULL,
-		              tracker_marshal_VOID__OBJECT_BOOLEAN,
+		              NULL,
 		              G_TYPE_NONE,
 		              2,
 		              G_TYPE_OBJECT,
@@ -185,7 +192,7 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              0,
 		              NULL, NULL,
-		              tracker_marshal_VOID__OBJECT_BOOLEAN,
+		              NULL,
 		              G_TYPE_NONE,
 		              2,
 		              G_TYPE_OBJECT,
@@ -196,7 +203,7 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              0,
 		              NULL, NULL,
-		              tracker_marshal_VOID__OBJECT_OBJECT_BOOLEAN_BOOLEAN,
+		              NULL,
 		              G_TYPE_NONE,
 		              4,
 		              G_TYPE_OBJECT,
@@ -295,6 +302,12 @@ tracker_monitor_init (TrackerMonitor *object)
 			 * negative maximum.
 			 */
 			priv->monitor_limit = MAX (priv->monitor_limit, 0);
+		}
+		else if (strcmp (name, "GKqueueDirectoryMonitor") == 0) {
+			/* Using kqueue(2) */
+			g_message ("Monitor backend is kqueue");
+
+			priv->monitor_limit = get_kqueue_limit ();
 		}
 		else if (strcmp (name, "GFamDirectoryMonitor") == 0) {
 			/* Using Fam */
@@ -397,6 +410,26 @@ tracker_monitor_get_property (GObject      *object,
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
+}
+
+static guint
+get_kqueue_limit (void)
+{
+	guint limit = 400;
+
+#ifdef TRACKER_MONITOR_KQUEUE
+	struct rlimit rl;
+	if (getrlimit (RLIMIT_NOFILE, &rl) == 0) {
+		rl.rlim_cur = rl.rlim_max;
+	} else {
+		return limit;
+	}
+
+	if (setrlimit(RLIMIT_NOFILE, &rl) == 0)
+		limit = (rl.rlim_cur * 90) / 100;
+#endif /* TRACKER_MONITOR_KQUEUE */
+
+	return limit;
 }
 
 static guint

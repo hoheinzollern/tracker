@@ -63,13 +63,8 @@ typedef struct {
 	guint shutdown_timeout;
 	GSource *shutdown_source;
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	GCond initialization_cond;
 	GMutex initialization_mutex, mutex;
-#else
-	GCond *initialization_cond;
-	GMutex *initialization_mutex, *mutex;
-#endif
 	GError *initialization_error;
 
 	guint initialized : 1;
@@ -152,15 +147,9 @@ tracker_controller_finalize (GObject *object)
 	g_main_loop_unref (priv->main_loop);
 	g_main_context_unref (priv->context);
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_cond_clear (&priv->initialization_cond);
 	g_mutex_clear (&priv->initialization_mutex);
 	g_mutex_clear (&priv->mutex);
-#else
-	g_cond_free (priv->initialization_cond);
-	g_mutex_free (priv->initialization_mutex);
-	g_mutex_free (priv->mutex);
-#endif
 
 	G_OBJECT_CLASS (tracker_controller_parent_class)->finalize (object);
 }
@@ -223,11 +212,7 @@ task_cancellable_cancelled_cb (GCancellable  *cancellable,
 
 	priv = data->controller->priv;
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_lock (&priv->mutex);
-#else
-	g_mutex_lock (priv->mutex);
-#endif
 
 	if (priv->current == data) {
 		g_message ("Cancelled writeback task for '%s' was currently being "
@@ -236,11 +221,7 @@ task_cancellable_cancelled_cb (GCancellable  *cancellable,
 		_exit (0);
 	}
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_unlock (&priv->mutex);
-#else
-	g_mutex_unlock (priv->mutex);
-#endif
 }
 
 
@@ -409,15 +390,9 @@ tracker_controller_init (TrackerController *controller)
 	g_signal_connect (priv->storage, "mount-point-removed",
 	                  G_CALLBACK (mount_point_removed_cb), controller);
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_cond_init (&priv->initialization_cond);
 	g_mutex_init (&priv->initialization_mutex);
 	g_mutex_init (&priv->mutex);
-#else
-	priv->initialization_cond = g_cond_new ();
-	priv->initialization_mutex = g_mutex_new ();
-	priv->mutex = g_mutex_new ();
-#endif
 }
 
 static void
@@ -462,15 +437,9 @@ perform_writeback_cb (gpointer user_data)
 
 	tracker_dbus_request_end (data->request, NULL);
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_lock (&priv->mutex);
 	priv->current = NULL;
 	g_mutex_unlock (&priv->mutex);
-#else
-	g_mutex_lock (priv->mutex);
-	priv->current = NULL;
-	g_mutex_unlock (priv->mutex);
-#endif
 
 	writeback_data_free (data);
 
@@ -496,26 +465,21 @@ sparql_rdf_types_match (const gchar * const *module_types,
 	return FALSE;
 }
 
-static gboolean
-io_writeback_job (GIOSchedulerJob *job,
-                  GCancellable    *cancellable,
-                  gpointer         user_data)
+static void
+io_writeback_job (GTask        *task,
+                  gpointer      source_object,
+                  gpointer      task_data,
+                  GCancellable *cancellable)
 {
-	WritebackData *data = user_data;
+	WritebackData *data = task_data;
 	TrackerControllerPrivate *priv = data->controller->priv;
 	GError *error = NULL;
 	gboolean handled = FALSE;
 	GList *writeback_handlers;
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_lock (&priv->mutex);
 	priv->current = data;
 	g_mutex_unlock (&priv->mutex);
-#else
-	g_mutex_lock (priv->mutex);
-	priv->current = data;
-	g_mutex_unlock (priv->mutex);
-#endif
 
 	writeback_handlers = data->writeback_handlers;
 
@@ -543,8 +507,6 @@ io_writeback_job (GIOSchedulerJob *job,
 	}
 
 	g_idle_add (perform_writeback_cb, data);
-
-	return FALSE;
 }
 
 static void
@@ -563,7 +525,6 @@ handle_method_call_perform_writeback (TrackerController     *controller,
 	GStrv rdf_types;
 	gchar *rdf_type = NULL;
 	GList *writeback_handlers = NULL;
-	WritebackData *data;
 
 	priv = controller->priv;
 
@@ -618,6 +579,9 @@ handle_method_call_perform_writeback (TrackerController     *controller,
 	}
 
 	if (writeback_handlers != NULL) {
+		WritebackData *data;
+		GTask *task;
+
 		data = writeback_data_new (controller,
 		                           writeback_handlers,
 		                           priv->connection,
@@ -625,9 +589,12 @@ handle_method_call_perform_writeback (TrackerController     *controller,
 		                           results,
 		                           invocation,
 		                           request);
+		task = g_task_new (controller, data->cancellable, NULL, NULL);
 
-		g_io_scheduler_push_job (io_writeback_job, data, NULL, 0,
-		                         data->cancellable);
+		/* No need to free data here, it's done in the callback. */
+		g_task_set_task_data (task, data, NULL);
+		g_task_run_in_thread (task, io_writeback_job);
+		g_object_unref (task);
 	} else {
 		g_dbus_method_invocation_return_error (invocation,
 		                                       TRACKER_DBUS_ERROR,
@@ -697,23 +664,14 @@ controller_notify_main_thread (TrackerController *controller,
 
 	priv = controller->priv;
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_lock (&priv->initialization_mutex);
-#else
-	g_mutex_lock (priv->initialization_mutex);
-#endif
 
 	priv->initialized = TRUE;
 	priv->initialization_error = error;
 
 	/* Notify about the initialization */
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_cond_signal (&priv->initialization_cond);
 	g_mutex_unlock (&priv->initialization_mutex);
-#else
-	g_cond_signal (priv->initialization_cond);
-	g_mutex_unlock (priv->initialization_mutex);
-#endif
 }
 
 static void
@@ -770,7 +728,7 @@ tracker_controller_dbus_start (TrackerController   *controller,
 		return FALSE;
 	}
 
-	priv->d_connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &err);
+	priv->d_connection = g_bus_get_sync (TRACKER_IPC_BUS, NULL, &err);
 
 	if (!priv->d_connection) {
 		g_propagate_error (error, err);
@@ -797,6 +755,8 @@ tracker_controller_dbus_start (TrackerController   *controller,
 		                                   &err);
 
 	if (err) {
+		g_critical ("Could not register the D-Bus object "TRACKER_WRITEBACK_PATH", %s",
+		            err ? err->message : "no error given.");
 		g_propagate_error (error, err);
 		return FALSE;
 	}
@@ -808,6 +768,13 @@ tracker_controller_dbus_start (TrackerController   *controller,
 		                              bus_name_acquired_cb,
 		                              bus_name_vanished_cb,
 		                              controller, NULL);
+
+	if (err) {
+		g_critical ("Could not own the D-Bus name "TRACKER_WRITEBACK_SERVICE", %s",
+		            err ? err->message : "no error given.");
+		g_propagate_error (error, err);
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -901,6 +868,7 @@ tracker_controller_start (TrackerController  *controller,
 {
 	TrackerControllerPrivate *priv;
 	GList *modules;
+	GThread *thread;
 
 	priv = controller->priv;
 
@@ -925,27 +893,15 @@ tracker_controller_start (TrackerController  *controller,
 		modules = modules->next;
 	}
 
-#if GLIB_CHECK_VERSION (2,31,0)
-	{
-		GThread *thread;
-
-		thread = g_thread_try_new ("controller",
-		                           tracker_controller_thread_func,
-		                           controller,
-		                           error);
-		if (!thread)
-			return FALSE;
-
-		/* We don't want to join it, so just unref the GThread */
-		g_thread_unref (thread);
-	}
-#else
-	if (!g_thread_create (tracker_controller_thread_func,
-	                      controller, FALSE, error)) {
+	thread = g_thread_try_new ("controller",
+	                           tracker_controller_thread_func,
+	                           controller,
+	                           error);
+	if (!thread)
 		return FALSE;
-	}
-#endif
 
+	/* We don't want to join it, so just unref the GThread */
+	g_thread_unref (thread);
 
 #ifdef THREAD_ENABLE_TRACE
 	g_debug ("Thread:%p (Controller) --- Waiting for controller thread to initialize...",
@@ -953,17 +909,10 @@ tracker_controller_start (TrackerController  *controller,
 #endif /* THREAD_ENABLE_TRACE */
 
 	/* Wait for the controller thread to notify initialization */
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_lock (&priv->initialization_mutex);
 	while (!priv->initialized)
 		g_cond_wait (&priv->initialization_cond, &priv->initialization_mutex);
 	g_mutex_unlock (&priv->initialization_mutex);
-#else
-	g_mutex_lock (priv->initialization_mutex);
-	while (!priv->initialized)
-		g_cond_wait (priv->initialization_cond, priv->initialization_mutex);
-	g_mutex_unlock (priv->initialization_mutex);
-#endif
 
 	/* If there was any error resulting from initialization, propagate it */
 	if (priv->initialization_error != NULL) {

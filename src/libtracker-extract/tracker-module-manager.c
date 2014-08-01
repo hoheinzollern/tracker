@@ -30,7 +30,7 @@
 typedef struct {
 	const gchar *module_path; /* intern string */
 	GList *patterns;
-	gchar *fallback_rdf_type;
+	GStrv fallback_rdf_types;
 } RuleInfo;
 
 typedef struct {
@@ -68,6 +68,14 @@ load_extractor_rule (GKeyFile  *key_file,
 		return FALSE;
 	}
 
+	if (!G_IS_DIR_SEPARATOR (module_path[0])) {
+		gchar *tmp;
+
+		tmp = g_build_filename (TRACKER_EXTRACTORS_DIR, module_path, NULL);
+		g_free (module_path);
+		module_path = tmp;
+	}
+
 	mimetypes = g_key_file_get_string_list (key_file, "ExtractorRule", "MimeTypes", &n_mimetypes, error);
 
 	if (!mimetypes) {
@@ -75,7 +83,7 @@ load_extractor_rule (GKeyFile  *key_file,
 		return FALSE;
 	}
 
-	rule.fallback_rdf_type = g_key_file_get_string (key_file, "ExtractorRule", "FallbackRdfType", NULL);
+	rule.fallback_rdf_types = g_key_file_get_string_list (key_file, "ExtractorRule", "FallbackRdfTypes", NULL, NULL);
 
 	/* Construct the rule */
 	rule.module_path = g_intern_string (module_path);
@@ -155,10 +163,9 @@ tracker_extract_module_manager_init (void)
 		    !load_extractor_rule (key_file, &error)) {
 			g_warning ("  Could not load extractor rule file '%s': %s", name, error->message);
 			g_clear_error (&error);
-			continue;
+		} else {
+			g_debug ("  Loaded rule '%s'", name);
 		}
-
-		g_debug ("  Loaded rule '%s'", name);
 
 		g_key_file_free (key_file);
 		g_free (path);
@@ -229,21 +236,43 @@ lookup_rules (const gchar *mimetype)
 GStrv
 tracker_extract_module_manager_get_fallback_rdf_types (const gchar *mimetype)
 {
-	GList *l, *list = lookup_rules (mimetype);
-	GArray *res = g_array_new (TRUE, TRUE, sizeof (gchar *));
-	gchar **types;
+	GList *l, *list;
+	GHashTable *rdf_types;
+	gchar **types, *type;
+	GHashTableIter iter;
+	gint i;
+
+	if (!initialized &&
+	    !tracker_extract_module_manager_init ()) {
+		return NULL;
+	}
+
+	list = lookup_rules (mimetype);
+	rdf_types = g_hash_table_new (g_str_hash, g_str_equal);
 
 	for (l = list; l; l = l->next) {
 		RuleInfo *r_info = l->data;
 
-		if (r_info->fallback_rdf_type != NULL) {
-			gchar *val = g_strdup (r_info->fallback_rdf_type);
-			g_array_append_val (res, val);
+		if (r_info->fallback_rdf_types == NULL)
+			continue;
+
+		for (i = 0; r_info->fallback_rdf_types[i]; i++) {
+			g_hash_table_insert (rdf_types,
+					     r_info->fallback_rdf_types[i],
+					     r_info->fallback_rdf_types[i]);
 		}
 	}
 
-	types = (GStrv) res->data;
-	g_array_free (res, FALSE);
+	g_hash_table_iter_init (&iter, rdf_types);
+	types = g_new0 (gchar*, g_hash_table_size (rdf_types) + 1);
+	i = 0;
+
+	while (g_hash_table_iter_next (&iter, (gpointer*) &type, NULL)) {
+		types[i] = g_strdup (type);
+		i++;
+	}
+
+	g_hash_table_unref (rdf_types);
 
 	return types;
 }
@@ -421,10 +450,9 @@ initialize_first_module (TrackerMimetypeInfo *info)
  * returned #TrackerMimetypeInfo already points to the first
  * module.
  *
- * Returns: (transfer full): (free-function: tracker_mimetype_info_free):
- *          (allow-none): A #TrackerMimetypeInfo holding the information
- *          about the different modules handling @mimetype, or %NULL if
- *          no modules handle @mimetype.
+ * Returns: (transfer full): (free-function: tracker_mimetype_info_free): (allow-none):
+ * A #TrackerMimetypeInfo holding the information about the different
+ * modules handling @mimetype, or %NULL if no modules handle @mimetype.
  *
  * Since: 0.12
  **/

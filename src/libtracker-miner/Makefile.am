@@ -1,9 +1,5 @@
-include $(top_srcdir)/Makefile.decl
-
 # Include list of shared sources:
 #  Defines:
-#    $(libtracker_miner_marshal_sources)
-#    $(libtracker_miner_marshal_headers)
 #    $(libtracker_miner_monitor_sources)
 #    $(libtracker_miner_monitor_headers)
 #    $(libtracker_miner_file_system_sources)
@@ -34,15 +30,9 @@ noinst_LTLIBRARIES = libtracker-miner-private.la
 libtracker_minerdir = $(libdir)/tracker-$(TRACKER_API_VERSION)
 libtracker_minerincludedir=$(includedir)/tracker-$(TRACKER_API_VERSION)/libtracker-miner/
 
-crawler_sources = 				       \
-	$(libtracker_miner_marshal_sources)            \
-	$(libtracker_miner_marshal_headers)            \
+private_sources = 				       \
 	tracker-crawler.c                              \
 	tracker-crawler.h                              \
-	tracker-utils.c                                \
-	tracker-utils.h					
-
-private_sources = 				       \
 	tracker-file-notifier.h                        \
 	tracker-file-notifier.c                        \
 	tracker-file-system.h                          \
@@ -53,58 +43,54 @@ private_sources = 				       \
 	tracker-task-pool.c                            \
 	tracker-sparql-buffer.h                        \
 	tracker-sparql-buffer.c                        \
-	tracker-storage.c                              \
-	tracker-storage.h                              
+	tracker-thumbnailer.c                          \
+	tracker-thumbnailer.h                          \
+	tracker-utils.c                                \
+	tracker-utils.h
+
+if HAVE_LIBMEDIAART
+private_sources += 				       \
+	tracker-media-art.c                            \
+	tracker-media-art.h
+endif
 
 miner_sources = 				       \
 	$(libtracker_miner_monitor_sources)            \
 	$(libtracker_miner_monitor_headers)            \
+	tracker-decorator.c                            \
+	tracker-decorator.h                            \
+	tracker-decorator-internal.h                   \
+	tracker-decorator-fs.c                         \
+	tracker-decorator-fs.h                         \
 	tracker-miner-dbus.h                           \
 	tracker-miner-enum-types.c                     \
 	tracker-miner-enum-types.h                     \
 	tracker-miner-object.c                         \
 	tracker-miner-object.h                         \
+	tracker-miner-online.c                         \
+	tracker-miner-online.h                         \
 	tracker-miner-fs.c                             \
-	tracker-miner-fs.h                             \
-	tracker-miner-manager.c                        \
-	tracker-miner-manager.h                        \
-	tracker-miner-web.c                            \
-	tracker-miner-web.h                            
-
+	tracker-miner-fs.h
 
 libtracker_miner_private_la_SOURCES =                  \
 	$(private_sources)
 
 libtracker_miner_@TRACKER_API_VERSION@_la_SOURCES =    \
-	$(network_provider_sources)                    \
-	$(password_provider_sources)                   \
-	$(crawler_sources)			       \
 	$(miner_sources)			       \
 	tracker-indexing-tree.c                        \
-	tracker-indexing-tree.h                        \
-	tracker-network-provider.c                     \
-	tracker-password-provider.c                    \
-	tracker-thumbnailer.c                          \
-	tracker-thumbnailer.h                          \
-	tracker-media-art.c                            \
-	tracker-media-art.h
+	tracker-indexing-tree.h
 
 libtracker_minerinclude_HEADERS =                      \
-	tracker-crawler.h                              \
+	tracker-decorator.h                            \
+	tracker-decorator-fs.h                         \
 	tracker-indexing-tree.h                        \
-	tracker-media-art.h                            \
 	tracker-miner.h                                \
 	tracker-miner-common.h                         \
 	tracker-miner-enums.h                          \
 	tracker-miner-enum-types.h                     \
 	tracker-miner-object.h                         \
-	tracker-miner-fs.h                             \
-	tracker-miner-manager.h                        \
-	tracker-miner-web.h                            \
-	tracker-network-provider.h                     \
-	tracker-password-provider.h                    \
-	tracker-storage.h                              \
-	tracker-thumbnailer.h
+	tracker-miner-online.h                         \
+	tracker-miner-fs.h
 
 libtracker_miner_@TRACKER_API_VERSION@_la_LDFLAGS =    \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
@@ -112,7 +98,7 @@ if !ENABLE_GCOV
 # Using enable_gcov instead of have_unit_test because when doing a release
 #  we disable gcov but NOT the unit tests
 libtracker_miner_@TRACKER_API_VERSION@_la_LDFLAGS +=    \
-	-export-symbols-regex '^tracker_(miner|thumbnailer|crawler|storage|password_provider|network_provider|indexing_tree|file_system|file_notifier|directory_flags|filter_type|filter_policy)_.*'
+	-export-symbols-regex '^tracker_(miner|indexing_tree|directory_flags|filter_type|filter_policy|network_type|decorator)_.*'
 endif
 
 libtracker_miner_@TRACKER_API_VERSION@_la_LIBADD =     \
@@ -122,25 +108,6 @@ libtracker_miner_@TRACKER_API_VERSION@_la_LIBADD =     \
 	-lm                                            \
 	$(BUILD_LIBS)                                  \
 	$(LIBTRACKER_MINER_LIBS)
-
-if HAVE_GNOME_KEYRING
-password_provider_sources = tracker-password-provider-gnome.c
-else
-password_provider_sources = tracker-password-provider-keyfile.c
-endif
-
-if HAVE_NETWORK_MANAGER
-network_provider_sources = tracker-network-provider-network-manager.c
-else
-network_provider_sources = tracker-network-provider-dummy.c
-endif
-
-$(top_builddir)/src/libtracker-miner/tracker-marshal.h: tracker-marshal.list
-	$(AM_V_GEN)$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --header > $@
-
-$(top_builddir)/src/libtracker-miner/tracker-marshal.c: tracker-marshal.list
-	$(AM_V_GEN)(echo "#include \"tracker-marshal.h\""; \
-		    $(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --body) > $@
 
 # Vala bindings
 vapidir = $(datadir)/vala/vapi
@@ -157,8 +124,6 @@ tracker-miner-$(TRACKER_API_VERSION).deps: tracker-miner.deps
 BUILT_SOURCES =                                        \
 	tracker-miner-enum-types.c                     \
 	tracker-miner-enum-types.h                     \
-	$(libtracker_miner_marshal_sources)            \
-	$(libtracker_miner_marshal_headers)            \
 	$(vapi_DATA)
 
 CLEANFILES = $(BUILT_SOURCES)
@@ -166,7 +131,6 @@ CLEANFILES = $(BUILT_SOURCES)
 EXTRA_DIST =                                           \
 	tracker-miner-enum-types.c.template            \
 	tracker-miner-enum-types.h.template            \
-	tracker-marshal.list                           \
 	tracker-miner.vapi                             \
 	tracker-miner.deps
 

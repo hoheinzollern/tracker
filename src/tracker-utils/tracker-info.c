@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2006, Jamie McCracken <jamiemcc@gnome.org>
  * Copyright (C) 2008-2010, Nokia <ivan.frade@nokia.com>
+ * Copyright (C) 2014, SoftAtHome <contact@softathome.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -43,6 +44,8 @@
 static gchar **filenames;
 static gboolean full_namespaces;
 static gboolean print_version;
+static gboolean plain_text_content;
+static gboolean resource_is_iri;
 static gboolean turtle;
 
 static GOptionEntry entries[] = {
@@ -52,6 +55,14 @@ static GOptionEntry entries[] = {
 	},
 	{ "full-namespaces", 'f', 0, G_OPTION_ARG_NONE, &full_namespaces,
 	  N_("Show full namespaces (i.e. don't use nie:title, use full URLs)"),
+	  NULL,
+	},
+	{ "plain-text-content", 'c', 0, G_OPTION_ARG_NONE, &plain_text_content,
+	  N_("Show plain text content if available for resources"),
+	  NULL,
+	},
+	{ "resource-is-iri", 'i', 0, G_OPTION_ARG_NONE, &resource_is_iri,
+	  N_("Instead of looking up a file name, treat the FILE arguments as actual IRIs (e.g. <file:///path/to/some/file.txt>)"),
 	  NULL,
 	},
 	{ "turtle", 't', 0, G_OPTION_ARG_NONE, &turtle,
@@ -115,8 +126,8 @@ get_prefixes (TrackerSparqlConnection *connection)
 
 	retval = g_hash_table_new_full (g_str_hash,
 	                                g_str_equal,
-	                                NULL,
-	                                NULL);
+	                                g_free,
+	                                g_free);
 
 	/* FIXME: Would like to get this in the same SPARQL that we
 	 * use to get the info, but doesn't seem possible at the
@@ -167,6 +178,22 @@ get_prefixes (TrackerSparqlConnection *connection)
 	return retval;
 }
 
+static inline void
+print_key_and_value (GHashTable  *prefixes,
+                     const gchar *key,
+                     const gchar *value)
+{
+	if (G_UNLIKELY (full_namespaces)) {
+		g_print ("  '%s' = '%s'\n", key, value);
+	} else {
+		gchar *shorthand;
+
+		shorthand = get_shorthand (prefixes, key);
+		g_print ("  '%s' = '%s'\n", shorthand, value);
+		g_free (shorthand);
+	}
+}
+
 static void
 print_plain (gchar               *urn_or_filename,
              gchar               *urn,
@@ -174,6 +201,9 @@ print_plain (gchar               *urn_or_filename,
              GHashTable          *prefixes,
              gboolean             full_namespaces)
 {
+	gchar *fts_key = NULL;
+	gchar *fts_value = NULL;
+
 	while (tracker_sparql_cursor_next (cursor, NULL, NULL)) {
 		const gchar *key = tracker_sparql_cursor_get_string (cursor, 0, NULL);
 		const gchar *value = tracker_sparql_cursor_get_string (cursor, 1, NULL);
@@ -184,19 +214,24 @@ print_plain (gchar               *urn_or_filename,
 
 		/* Don't display nie:plainTextContent */
 		if (strcmp (key, "http://www.semanticdesktop.org/ontologies/2007/01/19/nie#plainTextContent") == 0) {
+			if (plain_text_content) {
+				fts_key = g_strdup (key);
+				fts_value = g_strdup (value);
+			}
+
+			/* Always print FTS data at the end because of it's length */
 			continue;
 		}
 
-		if (G_UNLIKELY (full_namespaces)) {
-			g_print ("  '%s' = '%s'\n", key, value);
-		} else {
-			gchar *shorthand;
-
-			shorthand = get_shorthand (prefixes, key);
-			g_print ("  '%s' = '%s'\n", shorthand, value);
-			g_free (shorthand);
-		}
+		print_key_and_value (prefixes, key, value);
 	}
+
+	if (fts_key && fts_value) {
+		print_key_and_value (prefixes, fts_key, fts_value);
+	}
+
+	g_free (fts_key);
+	g_free (fts_value);
 }
 
 /* print a URI prefix in Turtle format */
@@ -273,7 +308,7 @@ print_turtle (gchar               *urn,
 		}
 
 		/* Don't display nie:plainTextContent */
-		if (strcmp (key, "http://www.semanticdesktop.org/ontologies/2007/01/19/nie#plainTextContent") == 0) {
+		if (!plain_text_content && strcmp (key, "http://www.semanticdesktop.org/ontologies/2007/01/19/nie#plainTextContent") == 0) {
 			continue;
 		}
 
@@ -347,8 +382,6 @@ main (int argc, char **argv)
 
 	g_option_context_free (context);
 
-	g_type_init ();
-
 	connection = tracker_sparql_connection_get (NULL, &error);
 
 	if (!connection) {
@@ -368,18 +401,20 @@ main (int argc, char **argv)
 	}
 
 	for (p = filenames; *p; p++) {
-		TrackerSparqlCursor *cursor;
+		TrackerSparqlCursor *cursor = NULL;
 		GError *error = NULL;
-		gchar *uri;
+		gchar *uri = NULL;
 		gchar *query;
-		gchar *urn;
+		gchar *urn = NULL;
 
-		if (!turtle) {
+		if (!turtle && !resource_is_iri) {
 			g_print ("%s:'%s'\n", _("Querying information for entity"), *p);
 		}
 
 		/* support both, URIs and local file paths */
 		if (has_valid_uri_scheme (*p)) {
+			uri = g_strdup (*p);
+		} else if (resource_is_iri) {
 			uri = g_strdup (*p);
 		} else {
 			GFile *file;
@@ -389,26 +424,26 @@ main (int argc, char **argv)
 			g_object_unref (file);
 		}
 
-		/* First check whether there's some entity with nie:url like this */
-		query = g_strdup_printf ("SELECT ?urn WHERE { ?urn nie:url \"%s\" }", uri);
-		cursor = tracker_sparql_connection_query (connection, query, NULL, &error);
-		g_free (query);
+		if (!resource_is_iri) {
+			/* First check whether there's some entity with nie:url like this */
+			query = g_strdup_printf ("SELECT ?urn WHERE { ?urn nie:url \"%s\" }", uri);
+			cursor = tracker_sparql_connection_query (connection, query, NULL, &error);
+			g_free (query);
 
-		if (error) {
-			g_printerr ("  %s, %s\n",
-			            _("Unable to retrieve URN for URI"),
-			            error->message);
-
-			g_clear_error (&error);
-			continue;
+			if (error) {
+				g_printerr ("  %s, %s\n",
+				            _("Unable to retrieve URN for URI"),
+				            error->message);
+				g_clear_error (&error);
+				continue;
+			}
 		}
 
 		if (!cursor || !tracker_sparql_cursor_next (cursor, NULL, &error)) {
 			if (error) {
 				g_printerr ("  %s, %s\n",
 				            _("Unable to retrieve data for URI"),
-					    error->message);
-
+				            error->message);
 				g_object_unref (cursor);
 				g_clear_error (&error);
 
@@ -466,6 +501,8 @@ main (int argc, char **argv)
 		}
 
 		g_print ("\n");
+
+		g_free (urn);
 	}
 
 	g_hash_table_unref (prefixes);

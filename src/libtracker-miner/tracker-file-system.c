@@ -45,6 +45,7 @@ struct _FileNodeData {
 	gchar *uri_suffix;
 	GArray *properties;
 	guint shallow   : 1;
+	guint unowned : 1;
 	guint file_type : 4;
 };
 
@@ -66,6 +67,14 @@ G_DEFINE_TYPE (TrackerFileSystem, tracker_file_system, G_TYPE_OBJECT)
  *     comparisons on them.
  *   - Stores data for the GFile lifetime, so it may be used as cache store
  *     as long as some file is needed.
+ *
+ * The TrackerFileSystem holds a reference on each GFile. There are two cases
+ * when we want to force a cached GFile to be freed: when it no longer exists
+ * on disk, and once crawling a directory has completed and we only need to
+ * remember the directories. Objects may persist in the cache even after
+ * tracker_file_system_forget_files() is called to delete them if there are
+ * references held on them elsewhere, and they will stay until all references
+ * are dropped.
  */
 
 
@@ -82,7 +91,9 @@ file_node_data_free (FileNodeData *data,
 			                     node);
 		}
 
-		g_object_unref (data->file);
+		if (!data->unowned) {
+			g_object_unref (data->file);
+		}
 	}
 
 	data->file = NULL;
@@ -253,6 +264,16 @@ file_tree_lookup (GNode     *tree,
 			g_free (uri);
 			return NULL;
 		}
+
+		/* Second check there is no basename and if there isn't,
+		 * then this node MUST be the closest registered node
+		 * we can use for the uri. The difference here is that
+		 * we return tree not NULL.
+		 */
+		else if (ptr[0] == '\0') {
+			g_free (uri);
+			return tree;
+                }
 	}
 
 	parent = tree;
@@ -469,6 +490,7 @@ tracker_file_system_get_file (TrackerFileSystem *file_system,
 
 	priv = file_system->priv;
 	node = NULL;
+	parent_node = NULL;
 
 	if (parent) {
 		parent_node = file_system_get_node (file_system, parent);
@@ -480,7 +502,16 @@ tracker_file_system_get_file (TrackerFileSystem *file_system,
 	}
 
 	if (!node) {
-		g_assert (parent_node != NULL);
+		if (!parent_node) {
+			gchar *uri;
+
+			uri = g_file_get_uri (file);
+			g_warning ("Could not find parent node for URI:'%s'", uri);
+			g_warning ("NOTE: URI themes other than 'file://' are not supported currently.");
+			g_free (uri);
+
+			return NULL;
+		}
 
 		node = g_node_new (NULL);
 
@@ -638,7 +669,7 @@ tracker_file_system_register_property (GQuark             prop,
 		properties = g_hash_table_new (NULL, NULL);
 	}
 
-	if (g_hash_table_lookup (properties, GUINT_TO_POINTER (prop))) {
+	if (g_hash_table_contains (properties, GUINT_TO_POINTER (prop))) {
 		g_warning ("FileSystem: property '%s' has been already registered",
 		           g_quark_to_string (prop));
 		return;
@@ -763,7 +794,7 @@ tracker_file_system_unset_property (TrackerFileSystem *file_system,
 {
 	FileNodeData *data;
 	FileNodeProperty property, *match;
-	GDestroyNotify destroy_notify;
+	GDestroyNotify destroy_notify = NULL;
 	GNode *node;
 	guint index;
 
@@ -801,7 +832,7 @@ tracker_file_system_unset_property (TrackerFileSystem *file_system,
 	/* Find out the index from memory positions */
 	index = (guint) ((FileNodeProperty *) match -
 	                 (FileNodeProperty *) data->properties->data);
-	g_assert (index >= 0 && index < data->properties->len);
+	g_assert (index < data->properties->len);
 
 	g_array_remove_index (data->properties, index);
 }
@@ -810,13 +841,13 @@ typedef struct {
 	TrackerFileSystem *file_system;
 	GList *list;
 	GFileType file_type;
-} DeleteFilesData;
+} ForgetFilesData;
 
 static gboolean
 append_deleted_files (GNode    *node,
 		      gpointer  user_data)
 {
-	DeleteFilesData *data;
+	ForgetFilesData *data;
 	FileNodeData *node_data;
 
 	data = user_data;
@@ -824,18 +855,31 @@ append_deleted_files (GNode    *node,
 
 	if (data->file_type == G_FILE_TYPE_UNKNOWN ||
 	    node_data->file_type == data->file_type) {
-		data->list = g_list_prepend (data->list, node_data->file);
+		data->list = g_list_prepend (data->list, node_data);
 	}
 
 	return FALSE;
 }
 
+static void
+forget_file (FileNodeData *node_data)
+{
+	if (!node_data->unowned) {
+		node_data->unowned = TRUE;
+
+		/* Weak reference handler will remove the file from the tree and
+		 * clean up node_data if this is the final reference.
+		 */
+		g_object_unref (node_data->file);
+	}
+}
+
 void
-tracker_file_system_delete_files (TrackerFileSystem *file_system,
+tracker_file_system_forget_files (TrackerFileSystem *file_system,
 				  GFile             *root,
 				  GFileType          file_type)
 {
-	DeleteFilesData data = { file_system, NULL, file_type };
+	ForgetFilesData data = { file_system, NULL, file_type };
 	GNode *node;
 
 	g_return_if_fail (TRACKER_IS_FILE_SYSTEM (file_system));
@@ -854,6 +898,28 @@ tracker_file_system_delete_files (TrackerFileSystem *file_system,
 	                 -1, append_deleted_files,
 	                 &data);
 
-	g_list_foreach (data.list, (GFunc) g_object_unref, NULL);
+	g_list_foreach (data.list, (GFunc) forget_file, NULL);
 	g_list_free (data.list);
+}
+
+GFileType
+tracker_file_system_get_file_type (TrackerFileSystem *file_system,
+                                   GFile             *file)
+{
+	GFileType file_type = G_FILE_TYPE_UNKNOWN;
+	GNode *node;
+
+	g_return_val_if_fail (TRACKER_IS_FILE_SYSTEM (file_system), file_type);
+	g_return_val_if_fail (G_IS_FILE (file), file_type);
+
+	node = file_system_get_node (file_system, file);
+
+	if (node) {
+		FileNodeData *node_data;
+
+		node_data = node->data;
+		file_type = node_data->file_type;
+	}
+
+	return file_type;
 }

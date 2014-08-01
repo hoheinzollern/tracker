@@ -48,6 +48,7 @@ struct _PatternData
 {
 	GPatternSpec *pattern;
 	TrackerFilterType type;
+	GFile *file; /* Only filled in in absolute paths */
 };
 
 struct _FindNodeData
@@ -115,9 +116,13 @@ pattern_data_new (const gchar *glob_string,
 {
 	PatternData *data;
 
-	data = g_slice_new (PatternData);
+	data = g_slice_new0 (PatternData);
 	data->pattern = g_pattern_spec_new (glob_string);
 	data->type = type;
+
+	if (g_path_is_absolute (glob_string)) {
+		data->file = g_file_new_for_path (glob_string);
+	}
 
 	return data;
 }
@@ -125,6 +130,10 @@ pattern_data_new (const gchar *glob_string,
 static void
 pattern_data_free (PatternData *data)
 {
+	if (data->file) {
+		g_object_unref (data->file);
+	}
+
 	g_pattern_spec_free (data->pattern);
 	g_slice_free (PatternData, data);
 }
@@ -216,7 +225,7 @@ tracker_indexing_tree_class_init (TrackerIndexingTreeClass *klass)
 		              G_STRUCT_OFFSET (TrackerIndexingTreeClass,
 		                               directory_added),
 		              NULL, NULL,
-		              g_cclosure_marshal_VOID__OBJECT,
+		              NULL,
 		              G_TYPE_NONE, 1, G_TYPE_FILE);
 	signals[DIRECTORY_REMOVED] =
 		g_signal_new ("directory-removed",
@@ -225,7 +234,7 @@ tracker_indexing_tree_class_init (TrackerIndexingTreeClass *klass)
 		              G_STRUCT_OFFSET (TrackerIndexingTreeClass,
 		                               directory_removed),
 		              NULL, NULL,
-		              g_cclosure_marshal_VOID__OBJECT,
+		              NULL,
 		              G_TYPE_NONE, 1, G_TYPE_FILE);
 	signals[DIRECTORY_UPDATED] =
 		g_signal_new ("directory-updated",
@@ -234,7 +243,7 @@ tracker_indexing_tree_class_init (TrackerIndexingTreeClass *klass)
 		              G_STRUCT_OFFSET (TrackerIndexingTreeClass,
 		                               directory_updated),
 		              NULL, NULL,
-		              g_cclosure_marshal_VOID__OBJECT,
+		              NULL,
 		              G_TYPE_NONE, 1, G_TYPE_FILE);
 
 	g_type_class_add_private (object_class,
@@ -516,23 +525,22 @@ tracker_indexing_tree_clear_filters (TrackerIndexingTree *tree,
                                      TrackerFilterType    type)
 {
 	TrackerIndexingTreePrivate *priv;
-	GList *filters;
+	GList *l;
 
 	g_return_if_fail (TRACKER_IS_INDEXING_TREE (tree));
 
 	priv = tree->priv;
-	filters = priv->filter_patterns;
 
-	while (filters) {
-		PatternData *data = filters->data;
-		GList *cur = filters;
-
-		filters = filters->next;
+	for (l = priv->filter_patterns; l; l = l->next) {
+		PatternData *data = l->data;
 
 		if (data->type == type) {
+			/* When we delete the link 'l', we point back
+			 * to the beginning of the list to make sure
+			 * we don't miss anything.
+			 */
+			l = priv->filter_patterns = g_list_delete_link (priv->filter_patterns, l);
 			pattern_data_free (data);
-			priv->filter_patterns = g_list_remove (priv->filter_patterns,
-			                                       cur);
 		}
 	}
 }
@@ -568,8 +576,17 @@ tracker_indexing_tree_file_matches_filter (TrackerIndexingTree *tree,
 
 		filters = filters->next;
 
-		if (data->type == type &&
-		    g_pattern_match_string (data->pattern, basename)) {
+		if (data->type != type)
+			continue;
+
+		if (data->file &&
+		    (g_file_equal (file, data->file) ||
+		     g_file_has_prefix (file, data->file))) {
+			g_free (basename);
+			return TRUE;
+		}
+
+		if (g_pattern_match_string (data->pattern, basename)) {
 			g_free (basename);
 			return TRUE;
 		}

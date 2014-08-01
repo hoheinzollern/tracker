@@ -17,7 +17,11 @@
  * 02110-1301, USA.
  */
 
-#include <libtracker-miner/tracker-miner.h>
+#include "config.h"
+
+#include <locale.h>
+
+#include <libtracker-miner/tracker-crawler.h>
 
 typedef struct CrawlerTest CrawlerTest;
 
@@ -122,7 +126,7 @@ test_crawler_crawl (void)
 
 	file = g_file_new_for_path (TEST_DATA_DIR);
 
-	started = tracker_crawler_start (crawler, file, TRUE);
+	started = tracker_crawler_start (crawler, file, -1);
 
 	g_assert_cmpint (started, ==, 1);
 
@@ -149,7 +153,7 @@ test_crawler_crawl_interrupted (void)
 
 	file = g_file_new_for_path (TEST_DATA_DIR);
 
-	started = tracker_crawler_start (crawler, file, TRUE);
+	started = tracker_crawler_start (crawler, file, -1);
 
 	g_assert_cmpint (started, ==, 1);
 
@@ -171,7 +175,7 @@ test_crawler_crawl_nonexisting (void)
 	crawler = tracker_crawler_new ();
 	file = g_file_new_for_path (TEST_DATA_DIR "-idontexist");
 
-	started = tracker_crawler_start (crawler, file, TRUE);
+	started = tracker_crawler_start (crawler, file, -1);
 
 	g_assert_cmpint (started, ==, 0);
 
@@ -196,7 +200,7 @@ test_crawler_crawl_recursive (void)
 
 	file = g_file_new_for_path (TEST_DATA_DIR);
 
-	tracker_crawler_start (crawler, file, TRUE);
+	tracker_crawler_start (crawler, file, -1);
 
 	g_main_loop_run (test.main_loop);
 
@@ -228,7 +232,7 @@ test_crawler_crawl_non_recursive (void)
 
 	file = g_file_new_for_path (TEST_DATA_DIR);
 
-	tracker_crawler_start (crawler, file, FALSE);
+	tracker_crawler_start (crawler, file, 1);
 
 	g_main_loop_run (test.main_loop);
 
@@ -266,7 +270,7 @@ test_crawler_crawl_n_signals (void)
 
 	file = g_file_new_for_path (TEST_DATA_DIR);
 
-	tracker_crawler_start (crawler, file, TRUE);
+	tracker_crawler_start (crawler, file, -1);
 
 	g_main_loop_run (test.main_loop);
 
@@ -286,6 +290,8 @@ test_crawler_crawl_n_signals_non_recursive (void)
 	CrawlerTest test = { 0 };
 	GFile *file;
 
+	setlocale (LC_ALL, "");
+
 	test.main_loop = g_main_loop_new (NULL, FALSE);
 
 	crawler = tracker_crawler_new ();
@@ -302,7 +308,7 @@ test_crawler_crawl_n_signals_non_recursive (void)
 
 	file = g_file_new_for_path (TEST_DATA_DIR);
 
-	tracker_crawler_start (crawler, file, FALSE);
+	tracker_crawler_start (crawler, file, 1);
 
 	g_main_loop_run (test.main_loop);
 
@@ -319,7 +325,6 @@ int
 main (int    argc,
       char **argv)
 {
-	g_type_init ();
 	g_test_init (&argc, &argv, NULL);
 
 	g_test_message ("Testing filesystem crawler");

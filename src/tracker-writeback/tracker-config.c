@@ -50,7 +50,7 @@ enum {
 };
 
 static TrackerConfigMigrationEntry migration[] = {
-	{ G_TYPE_ENUM, "General", "Verbosity", "verbosity" },
+	{ G_TYPE_ENUM, "General", "Verbosity", "verbosity", FALSE, FALSE },
 	{ 0 }
 };
 
@@ -142,7 +142,7 @@ TrackerConfig *
 tracker_config_new (void)
 {
 	return g_object_new (TRACKER_TYPE_CONFIG,
-			     "schema", "org.freedesktop.Tracker.Writeback",
+			     "schema-id", "org.freedesktop.Tracker.Writeback",
 			     "path", "/org/freedesktop/tracker/writeback/",
 			     NULL);
 }

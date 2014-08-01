@@ -44,16 +44,16 @@ scheduler_is (gint scheduler)
 static void
 test_sched_set_and_get (void)
 {
-        g_assert (scheduler_is (SCHED_OTHER));
         g_assert (tracker_sched_idle ());
+#ifdef __linux__
         g_assert (scheduler_is (SCHED_IDLE));
+#endif
 }
 
 
 gint
 main (gint argc, gchar **argv)
 {
-        g_type_init ();
         g_test_init (&argc, &argv, NULL);
 
         g_test_add_func ("/libtracker-common/sched/set_and_get",

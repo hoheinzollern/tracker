@@ -2,12 +2,6 @@
 # Includes sources that will be shared with the
 # testers in test/libtracker-miner
 
-libtracker_miner_marshal_sources =                              \
-	$(top_builddir)/src/libtracker-miner/tracker-marshal.c
-
-libtracker_miner_marshal_headers =                              \
-	$(top_builddir)/src/libtracker-miner/tracker-marshal.h
-
 libtracker_miner_monitor_sources =                              \
 	$(top_srcdir)/src/libtracker-miner/tracker-monitor.c
 
@@ -19,3 +13,9 @@ libtracker_miner_file_system_sources =                          \
 
 libtracker_miner_file_system_headers =                          \
 	$(top_srcdir)/src/libtracker-miner/tracker-file-system.h
+
+libtracker_miner_crawler_sources =                          \
+	$(top_srcdir)/src/libtracker-miner/tracker-crawler.c
+
+libtracker_miner_crawler_headers =                          \
+	$(top_srcdir)/src/libtracker-miner/tracker-crawler.h

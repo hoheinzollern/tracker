@@ -12,7 +12,7 @@
 
 nfo: a tracker:Namespace, tracker:Ontology ;
 	tracker:prefix "nfo" ;
-	nao:lastModified "2011-12-06T15:40:00Z" .
+	nao:lastModified "2014-07-30T13:05:00Z" .
 
 nfo:Document a rdfs:Class ;
 	rdfs:label "Document" ;
@@ -161,6 +161,7 @@ nfo:PaginatedTextDocument a rdfs:Class ;
 nfo:Video a rdfs:Class ;
 	rdfs:label "Video" ;
 	rdfs:comment "A video file." ;
+	tracker:notify true ;
 	rdfs:subClassOf nfo:Visual .
 
 nfo:Spreadsheet a rdfs:Class ;
@@ -499,6 +500,7 @@ nfo:fileName a rdf:Property ;
 	nrl:maxCardinality 1 ;
 	rdfs:domain nfo:FileDataObject ;
 	rdfs:range xsd:string ;
+	tracker:indexed true ;
 	tracker:fulltextIndexed true ;
 	tracker:weight 7 .
 
@@ -534,7 +536,6 @@ nfo:hasMediaStream a rdf:Property ;
 	rdfs:label "hasMediaStream" ;
 	rdfs:comment "Connects a media container with a single media stream contained within." ;
 	rdfs:subPropertyOf nie:hasPart ;
-	nrl:maxCardinality 1 ;
 	rdfs:domain nfo:Media ;
 	rdfs:range nie:DataObject .
 
@@ -756,6 +757,20 @@ nfo:deletionDate a rdf:Property ;
 	rdfs:domain nfo:DeletedResource ;
 	rdfs:range xsd:dateTime .
 
+nfo:depiction a rdf:Property ;
+	a nrl:InverseFunctionalProperty ;
+	rdfs:label "depiction" ;
+	rdfs:comment "Relates an information element to an image which depicts said element." ;
+	rdfs:domain rdfs:Resource ;
+	rdfs:range nfo:Image .
+
+nfo:depicts a rdf:Property ;
+	a nrl:InverseFunctionalProperty ;
+	rdfs:label "depicts" ;
+	rdfs:comment "Relates an image to the information elements it depicts." ;
+	rdfs:domain nfo:Image ;
+	rdfs:range rdfs:Resource .
+
 nfo:bookmarks a rdf:Property ;
 	rdfs:label "link" ;
 	rdfs:comment "The address of the linked object. Usually a web URL." ;
@@ -842,6 +857,13 @@ nfo:uri a rdf:Property ;
 
 # Added
 
+nfo:ImageCategory a rdfs:Class ;
+        rdfs:label "Image category" ;
+        rdfs:comment "A image category" ;
+        rdfs:subClassOf nfo:DataContainer .
+
+nfo:image-category-screenshot a nfo:ImageCategory .
+
 nfo:SoftwareCategory a rdfs:Class ;
 	rdfs:label "Software" ;
 	rdfs:comment "A software category" ;
@@ -906,11 +928,6 @@ poi: a tracker:Namespace ;
 poi:ObjectOfInterest a rdfs:Class ;
 	rdfs:subClassOf rdfs:Resource .
 
-nfo:depicts a rdf:Property ;
-	rdfs:domain nfo:Image ;
-	rdfs:range poi:ObjectOfInterest .
-
-
 # Ivan's magic proposal for happy media lists
 nfo:mediaListEntry a rdf:Property ;
 	rdfs:label "Media list entry" ;
@@ -926,6 +943,13 @@ nfo:isContentEncrypted a rdf:Property ;
 	rdfs:domain nie:InformationElement ;
 	rdfs:range xsd:boolean .
 
+# This change must be proposed upstream
+nfo:isBootable a rdf:Property ;
+	rdfs:label "Is content bootable" ;
+	rdfs:comment "True when the file is bootable, for example like an ISO or other disc images" ;
+	nrl:maxCardinality 1 ;
+	rdfs:domain nie:InformationElement ;
+	rdfs:range xsd:boolean .
 
 # Ontology request by Alexander Bokovoy, replaces nfo:device
 # These classes and properties need to be submitted to NEPOMUK

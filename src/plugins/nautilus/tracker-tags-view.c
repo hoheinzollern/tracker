@@ -172,7 +172,7 @@ tag_data_new (const gchar     *tag_id,
 
 	td = g_slice_new (TagData);
 
-	g_print ("Creating tag data\n");
+	g_debug ("Creating tag data");
 
 	td->tv = tv;
 	td->cancellable = g_cancellable_new ();
@@ -238,7 +238,7 @@ show_error_dialog (GError *error)
 	GtkWidget *dialog;
 	const gchar *str;
 
-	str = error->message ? error->message : _("No error was given");
+	str = error->message ? error->message : _("No error given");
 
 	dialog = gtk_message_dialog_new (NULL,
 	                                 0,
@@ -325,7 +325,7 @@ tags_view_tag_removed_cb (GObject      *source_object,
 	TrackerTagsViewPrivate *private;
 	GError *error = NULL;
 
-	g_print ("Update callback\n");
+	g_debug ("Update callback");
 
 	td = user_data;
 	private = TRACKER_TAGS_VIEW_GET_PRIVATE (td->tv);
@@ -338,7 +338,7 @@ tags_view_tag_removed_cb (GObject      *source_object,
 		show_error_dialog (error);
 		g_error_free (error);
 	} else {
-		g_print ("Tag removed\n");
+		g_message ("Tag removed (id:'%s') from store", td->tag_id);
 
 		gtk_list_store_remove (private->store, td->iter);
 	}
@@ -424,7 +424,7 @@ tags_view_query_files_for_tag_id_cb (GObject      *source_object,
 		return;
 	}
 
-	g_print ("Querying files with tag, in selection:%d, in total:%d, selected:%d\n",
+	g_debug ("Querying files with tag, in selection:%d, in total:%d, selected:%d",
 	         has_tag_in_selection, files_with_tag, files_selected);
 
 	if (has_tag_in_selection == 0) {
@@ -492,7 +492,7 @@ tags_view_add_tags_cb (GObject      *source_object,
 	TrackerSparqlCursor *cursor;
 	GError *error = NULL;
 
-	g_print ("Clearing tags in store\n");
+	g_debug ("Clearing tags in store");
 
 	tv = user_data;
 	private = TRACKER_TAGS_VIEW_GET_PRIVATE (tv);
@@ -511,7 +511,7 @@ tags_view_add_tags_cb (GObject      *source_object,
 			g_object_unref (cursor);
 		}
 	} else {
-		g_print ("Adding all tags...\n");
+		g_message ("Adding all tags...");
 
 		/* FIXME: make async */
 		while (tracker_sparql_cursor_next (cursor, private->cancellable, NULL)) {
@@ -522,7 +522,7 @@ tags_view_add_tags_cb (GObject      *source_object,
 			id = tracker_sparql_cursor_get_string (cursor, 0, NULL);
 			label = tracker_sparql_cursor_get_string (cursor, 1, NULL);
 
-			g_print ("Adding tag id:'%s' with label:'%s' to store\n", id, label);
+			g_message ("Tag added (id:'%s' with label:'%s') to store", id, label);
 
 			gtk_list_store_append (private->store, &iter);
 			gtk_list_store_set (private->store, &iter,
@@ -541,11 +541,6 @@ tags_view_add_tags_cb (GObject      *source_object,
 		if (cursor) {
 			g_object_unref (cursor);
 		}
-
-		if (error) {
-			show_error_dialog (error);
-			g_error_free (error);
-		}
 	}
 }
 
@@ -559,7 +554,7 @@ tags_view_model_update_cb (GObject      *source_object,
 	TrackerTagsViewPrivate *private;
 	GError *error = NULL;
 
-	g_print ("Update callback\n");
+	g_debug ("Update callback");
 
 	private = TRACKER_TAGS_VIEW_GET_PRIVATE (tv);
 
@@ -579,7 +574,7 @@ tags_view_model_update_cb (GObject      *source_object,
 			GtkTreeIter iter;
 			gchar *str;
 
-			g_print ("Setting tag selection state to ON (new)\n");
+			g_debug ("Setting tag selection state to ON (new)");
 
 			str = g_strdup_printf ("%d", td->items);
 			gtk_list_store_append (private->store, &iter);
@@ -594,7 +589,7 @@ tags_view_model_update_cb (GObject      *source_object,
 		} else if (td->selected) {
 			TagData *td_copy;
 
-			g_print ("Setting tag selection state to ON\n");
+			g_debug ("Setting tag selection state to ON");
 
 			gtk_list_store_set (private->store, td->iter,
 			                    COL_SELECTION, SELECTION_TRUE,
@@ -608,7 +603,7 @@ tags_view_model_update_cb (GObject      *source_object,
 		} else {
 			TagData *td_copy;
 
-			g_print ("Setting tag selection state to FALSE\n");
+			g_debug ("Setting tag selection state to FALSE");
 
 			gtk_list_store_set (private->store, td->iter,
 			                    COL_SELECTION, SELECTION_FALSE,
@@ -826,7 +821,7 @@ tags_view_model_toggle_row (TrackerTagsView *tv,
 		return;
 	}
 
-	g_print ("Running query:'%s'\n", query);
+	g_debug ("Running query:'%s'", query);
 
 	td = tag_data_new (id, &iter, TRUE, selection, 1, tv);
 	private->tag_data_requests =
@@ -1029,7 +1024,7 @@ tags_view_create_ui (TrackerTagsView *tv)
 	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 	gtk_box_pack_start (GTK_BOX (tv), label, FALSE, TRUE, 0);
 
-	hbox = gtk_hbox_new (FALSE, 12);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
 	gtk_box_pack_start (GTK_BOX (tv), hbox, FALSE, TRUE, 0);
 
 	entry = gtk_entry_new ();
@@ -1173,7 +1168,7 @@ tracker_tags_view_new (GList *files)
 
 	g_return_val_if_fail (files != NULL, NULL);
 
-	g_print ("New TrackerTagsView with %d files\n", g_list_length (files));
+	g_debug ("New TrackerTagsView with %d files", g_list_length (files));
 	tv = g_object_new (TRACKER_TYPE_TAGS_VIEW, NULL);
 
 	private = TRACKER_TAGS_VIEW_GET_PRIVATE (tv);

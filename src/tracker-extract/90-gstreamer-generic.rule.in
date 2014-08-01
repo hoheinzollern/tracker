@@ -1,4 +1,0 @@
-[ExtractorRule]
-ModulePath=@modulesdir@/libextract-gstreamer.so
-MimeTypes=audio/*;video/*;image/*;
-

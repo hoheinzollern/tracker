@@ -24,9 +24,14 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 
+#ifdef __sun
+#include <procfs.h>
+#endif
+
 #include <libtracker-common/tracker-common.h>
 #include <libtracker-data/tracker-data.h>
 #include <libtracker-miner/tracker-miner.h>
+#include <libtracker-control/tracker-control.h>
 
 #include "tracker-control.h"
 
@@ -56,6 +61,7 @@ static gboolean get_log_verbosity;
 static gboolean start;
 static gchar *backup;
 static gchar *restore;
+static gboolean collect_debug_info;
 
 #define GENERAL_OPTIONS_ENABLED() \
 	(list_processes || \
@@ -68,7 +74,8 @@ static gchar *restore;
 	 set_log_verbosity || \
 	 start || \
 	 backup || \
-	 restore)
+	 restore || \
+	 collect_debug_info)
 
 static gboolean term_option_arg_func (const gchar  *option_value,
                                       const gchar  *value,
@@ -93,12 +100,6 @@ static GOptionEntry entries[] = {
 	{ "remove-config", 'c', 0, G_OPTION_ARG_NONE, &remove_config,
 	  N_("Remove all configuration files so they are re-generated on next start"),
 	  NULL },
-	{ "set-log-verbosity", 0, 0, G_OPTION_ARG_STRING, &set_log_verbosity,
-	  N_("Sets the logging verbosity to LEVEL ('debug', 'detailed', 'minimal', 'errors') for all processes"),
-	  N_("LEVEL") },
-	{ "get-log-verbosity", 0, 0, G_OPTION_ARG_NONE, &get_log_verbosity,
-	  N_("Show logging values in terms of log verbosity for each process"),
-	  NULL },
 	{ "start", 's', 0, G_OPTION_ARG_NONE, &start,
 	  N_("Starts miners (which indirectly starts tracker-store too)"),
 	  NULL },
@@ -108,6 +109,15 @@ static GOptionEntry entries[] = {
 	{ "restore", 'o', 0, G_OPTION_ARG_FILENAME, &restore,
 	  N_("Restore databases from the file provided"),
 	  N_("FILE") },
+	{ "set-log-verbosity", 0, 0, G_OPTION_ARG_STRING, &set_log_verbosity,
+	  N_("Sets the logging verbosity to LEVEL ('debug', 'detailed', 'minimal', 'errors') for all processes"),
+	  N_("LEVEL") },
+	{ "get-log-verbosity", 0, 0, G_OPTION_ARG_NONE, &get_log_verbosity,
+	  N_("Show logging values in terms of log verbosity for each process"),
+	  NULL },
+	{ "collect-debug-info", 0, 0, G_OPTION_ARG_NONE, &collect_debug_info,
+	  N_("Collect debug information useful for problem reporting and investigation, results are output to terminal"),
+	  NULL },
 	{ NULL }
 };
 
@@ -127,9 +137,9 @@ get_pids (void)
 
 	dir = g_dir_open ("/proc", 0, &error);
 	if (error) {
-		g_printerr ("%s, %s\n",
+		g_printerr ("%s: %s\n",
 		            _("Could not open /proc"),
-		            error ? error->message : _("no error given"));
+		            error ? error->message : _("No error given"));
 		g_clear_error (&error);
 		return NULL;
 	}
@@ -180,45 +190,44 @@ log_handler (const gchar    *domain,
 	}
 }
 
-static gboolean
-crawler_check_file_cb (TrackerCrawler *crawler,
-                       GFile          *file,
-                       gpointer        user_data)
+static void
+delete_file (GFile    *file,
+             gpointer  user_data)
 {
-	const gchar **suffix;
-	gchar *path;
-	gboolean should_remove;
+	if (g_file_delete (file, NULL, NULL)) {
+		gchar *path;
 
-	suffix = user_data;
-	path = g_file_get_path (file);
-
-	if (suffix) {
-		should_remove = g_str_has_suffix (path, *suffix);
-	} else {
-		should_remove = TRUE;
-	}
-
-	if (!should_remove) {
-		g_free (path);
-		return FALSE;
-	}
-
-	/* Remove file */
-	if (g_unlink (path) == 0) {
+		path = g_file_get_path (file);
 		g_print ("  %s\n", path);
+		g_free (path);
 	}
-
-	g_free (path);
-
-	return should_remove;
 }
 
 static void
-crawler_finished_cb (TrackerCrawler *crawler,
-                     gboolean        was_interrupted,
-                     gpointer        user_data)
+directory_foreach (GFile    *file,
+                   gchar    *suffix,
+                   GFunc     func,
+                   gpointer  user_data)
 {
-	g_main_loop_quit (user_data);
+	GFileEnumerator *enumerator;
+	GFileInfo *info;
+	GFile *child;
+
+	enumerator = g_file_enumerate_children (file, G_FILE_ATTRIBUTE_STANDARD_NAME,
+	                                        G_FILE_QUERY_INFO_NONE, NULL, NULL);
+
+	while ((info = g_file_enumerator_next_file (enumerator, NULL, NULL)) != NULL) {
+
+		if (!suffix || g_str_has_suffix (g_file_info_get_name (info), suffix)) {
+			child = g_file_enumerator_get_child (enumerator, info);
+			(func) (child, user_data);
+			g_object_unref (child);
+		}
+
+		g_object_unref (info);
+	}
+
+	g_object_unref (enumerator);
 }
 
 typedef struct {
@@ -290,6 +299,8 @@ tracker_gsettings_set_all (GSList           *all,
 		g_settings_apply (c->settings);
 	}
 
+	g_settings_sync ();
+
 	return success;
 }
 
@@ -322,7 +333,7 @@ tracker_gsettings_get_all (gint *longest_name_length)
 	manager = tracker_miner_manager_new_full (FALSE, &error);
 	if (!manager) {
 		g_printerr (_("Could not get GSettings for miners, manager could not be created, %s"),
-		            error ? error->message : "unknown error");
+		            error ? error->message : _("No error given"));
 		g_printerr ("\n");
 		g_clear_error (&error);
 		return NULL;
@@ -464,7 +475,7 @@ term_option_arg_func (const gchar  *option_value,
 		option = TERM_MINERS;
 	} else {
 		g_set_error_literal (error, G_OPTION_ERROR, G_OPTION_ERROR_FAILED,
-		                     "Only one of 'all', 'store' and 'miners' are allowed");
+		                     _("Only one of 'all', 'store' and 'miners' options are allowed"));
 		return FALSE;
 	}
 
@@ -526,7 +537,11 @@ get_uid_for_pid (const gchar  *pid_as_string,
 	gchar *fn;
 	guint uid;
 
+#ifdef __sun /* Solaris */
+	fn = g_build_filename ("/proc", pid_as_string, "psinfo", NULL);
+#else
 	fn = g_build_filename ("/proc", pid_as_string, "cmdline", NULL);
+#endif
 
 	f = g_file_new_for_path (fn);
 	info = g_file_query_info (f,
@@ -536,7 +551,7 @@ get_uid_for_pid (const gchar  *pid_as_string,
 	                          &error);
 
 	if (error) {
-		g_printerr ("Could not stat() file:'%s', %s", fn, error->message);
+		g_printerr ("%s '%s', %s", _("Could not stat() file"), fn, error->message);
 		g_error_free (error);
 		uid = 0;
 	} else {
@@ -553,6 +568,205 @@ get_uid_for_pid (const gchar  *pid_as_string,
 	g_object_unref (f);
 
 	return uid;
+}
+
+static void
+collect_debug (void)
+{
+	/* What to collect?
+	 * This is based on information usually requested from maintainers to users.
+	 *
+	 * 1. Package details, e.g. version.
+	 * 2. Disk size, space left, type (SSD/etc)
+	 * 3. Size of dataset (tracker-stats), size of databases
+	 * 4. Current configuration (libtracker-fts, tracker-miner-fs, tracker-extract)
+	 *    All txt files in ~/.cache/
+	 * 5. Statistics about data (tracker-stats)
+	 */
+
+	GDir *d;
+	gchar *data_dir;
+	gchar *str;
+
+	data_dir = g_build_filename (g_get_user_cache_dir (), "tracker", NULL);
+
+	/* 1. Package details, e.g. version. */
+	g_print ("[Package Details]\n");
+	g_print ("%s: " PACKAGE_VERSION "\n", _("Version"));
+	g_print ("\n\n");
+
+	/* 2. Disk size, space left, type (SSD/etc) */
+	guint64 remaining_bytes;
+	gdouble remaining;
+
+	g_print ("[%s]\n", _("Disk Information"));
+
+	remaining_bytes = tracker_file_system_get_remaining_space (data_dir);
+	str = g_format_size (remaining_bytes);
+
+	remaining = tracker_file_system_get_remaining_space_percentage (data_dir);
+	g_print ("%s: %s (%3.2lf%%)\n",
+	         _("Remaining space on database partition"),
+	         str,
+	         remaining);
+	g_free (str);
+	g_print ("\n\n");
+
+	/* 3. Size of dataset (tracker-stats), size of databases */
+	g_print ("[%s]\n", _("Data Set"));
+
+	for (d = g_dir_open (data_dir, 0, NULL); d != NULL;) {
+		const gchar *f;
+		gchar *path;
+		goffset size;
+
+		f = g_dir_read_name (d);
+		if (!f) {
+			break;
+		}
+
+		if (g_str_has_suffix (f, ".txt")) {
+			continue;
+		}
+
+		path = g_build_filename (data_dir, f, NULL);
+		size = tracker_file_get_size (path);
+		str = g_format_size (size);
+
+		g_print ("%s\n%s\n\n", path, str);
+		g_free (str);
+		g_free (path);
+	}
+	g_dir_close (d);
+	g_print ("\n");
+
+	/* 4. Current configuration (libtracker-fts, tracker-miner-fs, tracker-extract)
+	 *    All txt files in ~/.cache/
+	 */
+	GSList *all, *l;
+
+	g_print ("[%s]\n", _("Configuration"));
+
+	all = tracker_gsettings_get_all (NULL);
+
+	if (all) {
+		for (l = all; l; l = l->next) {
+			ComponentGSettings *c = l->data;
+			gchar **keys, **p;
+
+			if (!c) {
+				continue;
+			}
+
+			keys = g_settings_list_keys (c->settings);
+			for (p = keys; p && *p; p++) {
+				GVariant *v;
+				gchar *printed;
+
+				v = g_settings_get_value (c->settings, *p);
+				printed = g_variant_print (v, FALSE);
+				g_print ("%s.%s: %s\n", c->name, *p, printed);
+				g_free (printed);
+				g_variant_unref (v);
+			}
+		}
+
+		tracker_gsettings_free (all);
+	} else {
+		g_print ("** %s **\n", _("No configuration was found"));
+	}
+	g_print ("\n\n");
+
+	g_print ("[%s]\n", _("States"));
+
+	for (d = g_dir_open (data_dir, 0, NULL); d != NULL;) {
+		const gchar *f;
+		gchar *path;
+		gchar *content = NULL;
+
+		f = g_dir_read_name (d);
+		if (!f) {
+			break;
+		}
+
+		if (!g_str_has_suffix (f, ".txt")) {
+			continue;
+		}
+
+		path = g_build_filename (data_dir, f, NULL);
+		if (g_file_get_contents (path, &content, NULL, NULL)) {
+			/* Special case last-index.txt which is time() dump to file */
+			if (g_str_has_suffix (path, "last-crawl.txt")) {
+				guint64 then, now;
+
+				now = (guint64) time (NULL);
+				then = g_ascii_strtoull (content, NULL, 10);
+				str = tracker_seconds_to_string (now - then, FALSE);
+
+				g_print ("%s\n%s (%s)\n\n", path, content, str);
+			} else {
+				g_print ("%s\n%s\n\n", path, content);
+			}
+			g_free (content);
+		}
+		g_free (path);
+	}
+	g_dir_close (d);
+	g_print ("\n");
+
+	/* 5. Statistics about data (tracker-stats) */
+	TrackerSparqlConnection *connection;
+	GError *error = NULL;
+
+	g_print ("[%s]\n", _("Data Statistics"));
+
+	connection = tracker_sparql_connection_get (NULL, &error);
+
+	if (!connection) {
+		g_print ("** %s, %s **\n",
+		         _("No connection available"),
+		         error ? error->message : _("No error given"));
+		g_clear_error (&error);
+	} else {
+		TrackerSparqlCursor *cursor;
+
+		cursor = tracker_sparql_connection_statistics (connection, NULL, &error);
+
+		if (error) {
+			g_print ("** %s, %s **\n",
+			         _("Could not get statistics"),
+			         error ? error->message : _("No error given"));
+			g_error_free (error);
+		} else {
+			if (!cursor) {
+				g_print ("** %s **\n",
+				         _("No statistics were available"));
+			} else {
+				gint count = 0;
+
+				while (tracker_sparql_cursor_next (cursor, NULL, NULL)) {
+					g_print ("%s: %s\n",
+					         tracker_sparql_cursor_get_string (cursor, 0, NULL),
+					         tracker_sparql_cursor_get_string (cursor, 1, NULL));
+					count++;
+				}
+
+				if (count == 0) {
+					g_print ("%s\n",
+					         _("Database is currently empty"));
+				}
+
+				g_object_unref (cursor);
+			}
+		}
+	}
+
+	g_object_unref (connection);
+	g_print ("\n\n");
+
+	g_print ("\n");
+
+	g_free (data_dir);
 }
 
 void
@@ -616,6 +830,11 @@ tracker_control_general_run (void)
 		}
 	}
 
+	if (collect_debug_info) {
+		collect_debug ();
+		return EXIT_SUCCESS;
+	}
+
 	if (hard_reset || soft_reset) {
 		/* Imply --kill */
 		kill_option = TERM_ALL;
@@ -665,7 +884,11 @@ tracker_control_general_run (void)
 		for (l = pids; l; l = l->next) {
 			GError *error = NULL;
 			gchar *filename;
+#ifdef __sun /* Solaris */
+			psinfo_t psinfo = { 0 };
+#endif
 			gchar *contents = NULL;
+
 			gchar **strv;
 			guint uid;
 
@@ -679,9 +902,9 @@ tracker_control_general_run (void)
 			/* Get contents to determine basename */
 			if (!g_file_get_contents (filename, &contents, NULL, &error)) {
 				str = g_strdup_printf (_("Could not open '%s'"), filename);
-				g_printerr ("%s, %s\n",
+				g_printerr ("%s: %s\n",
 				            str,
-				            error ? error->message : _("no error given"));
+				            error ? error->message : _("No error given"));
 				g_free (str);
 				g_clear_error (&error);
 				g_free (contents);
@@ -689,8 +912,14 @@ tracker_control_general_run (void)
 
 				continue;
 			}
+#ifdef __sun /* Solaris */
+			memcpy (&psinfo, contents, sizeof (psinfo));
 
+			/* won't work with paths containing spaces :( */
+			strv = g_strsplit (psinfo.pr_psargs, " ", 2);
+#else
 			strv = g_strsplit (contents, "^@", 2);
+#endif
 			if (strv && strv[0]) {
 				gchar *basename;
 
@@ -719,9 +948,9 @@ tracker_control_general_run (void)
 							const gchar *errstr = g_strerror (errno);
 
 							str = g_strdup_printf (_("Could not terminate process %d"), pid);
-							g_printerr ("  %s, %s\n",
+							g_printerr ("  %s: %s\n",
 							            str,
-							            errstr ? errstr : _("no error given"));
+							            errstr ? errstr : _("No error given"));
 							g_free (str);
 						} else {
 							str = g_strdup_printf (_("Terminated process %d"), pid);
@@ -740,9 +969,9 @@ tracker_control_general_run (void)
 							const gchar *errstr = g_strerror (errno);
 
 							str = g_strdup_printf (_("Could not kill process %d"), pid);
-							g_printerr ("  %s, %s\n",
+							g_printerr ("  %s: %s\n",
 							            str,
-							            errstr ? errstr : _("no error given"));
+							            errstr ? errstr : _("No error given"));
 							g_free (str);
 						} else {
 							str = g_strdup_printf (_("Killed process %d"), pid);
@@ -836,25 +1065,10 @@ tracker_control_general_run (void)
 	}
 
 	if (remove_config) {
-		GMainLoop *main_loop;
 		GFile *file;
-		TrackerCrawler *crawler;
-		const gchar *suffix = ".cfg";
 		const gchar *home_conf_dir;
 		gchar *path;
 		GSList *all, *l;
-
-		crawler = tracker_crawler_new ();
-		main_loop = g_main_loop_new (NULL, FALSE);
-
-		g_signal_connect (crawler, "check-file",
-		                  G_CALLBACK (crawler_check_file_cb),
-		                  &suffix);
-		g_signal_connect (crawler, "finished",
-		                  G_CALLBACK (crawler_finished_cb),
-		                  main_loop);
-
-		/* Go through service files */
 
 		/* Check the default XDG_DATA_HOME location */
 		home_conf_dir = g_getenv ("XDG_CONFIG_HOME");
@@ -875,11 +1089,8 @@ tracker_control_general_run (void)
 
 		g_print ("%s\n", _("Removing configuration files…"));
 
-		tracker_crawler_start (crawler, file, FALSE);
+		directory_foreach (file, ".cfg", (GFunc) delete_file, NULL);
 		g_object_unref (file);
-
-		g_main_loop_run (main_loop);
-		g_object_unref (crawler);
 
 		g_print ("%s\n", _("Resetting existing configuration…"));
 
@@ -911,6 +1122,8 @@ tracker_control_general_run (void)
 
 			g_settings_apply (c->settings);
 		}
+
+		g_settings_sync ();
 
 		tracker_gsettings_free (all);
 	}
@@ -1007,7 +1220,7 @@ tracker_control_general_run (void)
 		manager = tracker_miner_manager_new_full (TRUE, &error);
 		if (!manager) {
 			g_printerr (_("Could not start miners, manager could not be created, %s"),
-			            error ? error->message : "unknown error");
+			            error ? error->message : _("No error given"));
 			g_printerr ("\n");
 			g_clear_error (&error);
 			return EXIT_FAILURE;
@@ -1051,39 +1264,19 @@ tracker_control_general_run (void)
 		GVariant *v;
 		gchar *uri;
 
+		if (!tracker_control_dbus_get_connection ("org.freedesktop.Tracker1",
+		                                          "/org/freedesktop/Tracker1/Backup",
+		                                          "org.freedesktop.Tracker1.Backup",
+		                                          G_DBUS_PROXY_FLAGS_NONE,
+		                                          &connection,
+		                                          &proxy)) {
+			return EXIT_FAILURE;
+		}
+
 		uri = get_uri_from_arg (backup);
 
 		g_print ("%s\n", _("Backing up database"));
 		g_print ("  %s\n", uri);
-
-		connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &error);
-
-		if (!connection) {
-			g_critical ("Could not connect to the D-Bus session bus, %s",
-			            error ? error->message : "no error given.");
-			g_clear_error (&error);
-			g_free (uri);
-
-			return EXIT_FAILURE;
-		}
-
-		proxy = g_dbus_proxy_new_sync (connection,
-		                               G_DBUS_PROXY_FLAGS_NONE,
-		                               NULL,
-		                               "org.freedesktop.Tracker1",
-		                               "/org/freedesktop/Tracker1/Backup",
-		                               "org.freedesktop.Tracker1.Backup",
-		                               NULL,
-		                               &error);
-
-		if (error) {
-			g_critical ("Could not create proxy on the D-Bus session bus, %s",
-			            error ? error->message : "no error given.");
-			g_clear_error (&error);
-			g_free (uri);
-
-			return EXIT_FAILURE;
-		}
 
 		/* Backup/Restore can take some time */
 		g_dbus_proxy_set_default_timeout (proxy, G_MAXINT);
@@ -1101,8 +1294,9 @@ tracker_control_general_run (void)
 		}
 
 		if (error) {
-			g_critical ("Could not backup database, %s",
-			            error ? error->message : "no error given.");
+			g_critical ("%s, %s",
+			            _("Could not backup database"),
+			            error ? error->message : _("No error given"));
 			g_clear_error (&error);
 			g_free (uri);
 
@@ -1123,39 +1317,19 @@ tracker_control_general_run (void)
 		GVariant *v;
 		gchar *uri;
 
+		if (!tracker_control_dbus_get_connection ("org.freedesktop.Tracker1",
+		                                          "/org/freedesktop/Tracker1/Backup",
+		                                          "org.freedesktop.Tracker1.Backup",
+		                                          G_DBUS_PROXY_FLAGS_NONE,
+		                                          &connection,
+		                                          &proxy)) {
+			return EXIT_FAILURE;
+		}
+
 		uri = get_uri_from_arg (restore);
 
 		g_print ("%s\n", _("Restoring database from backup"));
 		g_print ("  %s\n", uri);
-
-		connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &error);
-
-		if (!connection) {
-			g_critical ("Could not connect to the D-Bus session bus, %s",
-			            error ? error->message : "no error given.");
-			g_clear_error (&error);
-			g_free (uri);
-
-			return EXIT_FAILURE;
-		}
-
-		proxy = g_dbus_proxy_new_sync (connection,
-		                               G_DBUS_PROXY_FLAGS_NONE,
-		                               NULL,
-		                               "org.freedesktop.Tracker1",
-		                               "/org/freedesktop/Tracker1/Backup",
-		                               "org.freedesktop.Tracker1.Backup",
-		                               NULL,
-		                               &error);
-
-		if (error) {
-			g_critical ("Could not create proxy on the D-Bus session bus, %s",
-			            error ? error->message : "no error given.");
-			g_clear_error (&error);
-			g_free (uri);
-
-			return EXIT_FAILURE;
-		}
 
 		/* Backup/Restore can take some time */
 		g_dbus_proxy_set_default_timeout (proxy, G_MAXINT);
@@ -1173,8 +1347,9 @@ tracker_control_general_run (void)
 		}
 
 		if (error) {
-			g_critical ("Could not restore database, %s",
-			            error ? error->message : "no error given.");
+			g_critical ("%s, %s",
+			            _("Could not backup database"),
+			            error ? error->message : _("No error given"));
 			g_clear_error (&error);
 			g_free (uri);
 

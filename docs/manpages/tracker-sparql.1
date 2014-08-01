@@ -27,7 +27,7 @@ Use a \fIFILE\fR with SPARQL content to query or update.
 Use a \fISPARQL\fR string to query the database with.
 .TP
 .B \-u, \-\-update
-This has to be used with 
+This has to be used with
 .B \-\-query.
 This tells
 .B tracker-sparql
@@ -58,16 +58,21 @@ or the shortened prefix name \fInfo:Video\fR.
 
 This gives the following result:
 
-.NF
+.nf
 $ tracker-sparql -p nfo:Video
 
 Properties: 2
   http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#frameRate
   http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#frameCount
-.FI
+.fi
 
-These properties \fInfo:frameRate\fR and \fInfo:frameCount\fR can be
-used in more complex queries (see --query).
+These properties \fInfo:frameRate\fR and \fInfo:frameCount\fR can then
+be used in queries (see also
+.B \-\-query
+).
+
+See also
+.B \-\-tree
 
 .TP
 .B \-n, \-\-list-notifies=CLASS
@@ -85,12 +90,97 @@ filters the results according to any argument supplied. With no
 \fIPROPERTY\fR, all properties are listed.
 
 .TP
+.B \-t, \-\-tree [<CLASS>]
+Prints a tree showing all parent classes of \fICLASS\fR in the
+ontology. \fICLASS\fR can be provided in shorthand or longhand (see
+.B \-\-get\-shorthand
+and
+.B \-\-get\-longhand
+for details). For example:
+
+.nf
+$ tracker-sparql -t nmo:MMSMessage
+ROOT
+  +-- rdfs:Resource (C)
+  |  +-- nie:InformationElement (C)
+  |  |  +-- nfo:Document (C)
+  |  |  |  +-- nfo:TextDocument (C)
+  |  |  |  |  `-- nmo:Message (C)
+  |  |  |  |  |  +-- nmo:PhoneMessage (C)
+  |  |  |  |  |  |  `-- nmo:MMSMessage (C)
+.fi
+
+If no \fICLASS\fR is given, the entire tree is shown.
+
+The
+.B \-\-search
+command line option can be used to highlight parts of the tree you're
+looking for. The search is case insensitive.
+
+The
+.B \-\-properties
+command line option can be used to show properties for each class
+displayed, for example:
+
+.nf
+$ tracker-sparql -t nfo:FileDataObject -p
+ROOT
+  +-- rdfs:Resource (C)
+  |  --> http://purl.org/dc/elements/1.1/contributor (P)
+  |  --> http://purl.org/dc/elements/1.1/coverage (P)
+  |  --> http://purl.org/dc/elements/1.1/creator (P)
+  |  --> http://purl.org/dc/elements/1.1/date (P)
+  |  --> http://purl.org/dc/elements/1.1/description (P)
+  |  --> http://purl.org/dc/elements/1.1/format (P)
+  |  --> http://purl.org/dc/elements/1.1/identifier (P)
+  |  --> http://purl.org/dc/elements/1.1/language (P)
+  |  --> http://purl.org/dc/elements/1.1/publisher (P)
+  |  --> http://purl.org/dc/elements/1.1/relation (P)
+  |  --> http://purl.org/dc/elements/1.1/rights (P)
+  |  --> http://purl.org/dc/elements/1.1/source (P)
+  |  --> http://purl.org/dc/elements/1.1/subject (P)
+  |  --> http://purl.org/dc/elements/1.1/title (P)
+  |  --> http://purl.org/dc/elements/1.1/type (P)
+  |  --> nao:deprecated (P)
+  |  --> nao:hasTag (P)
+  |  --> nao:identifier (P)
+  |  --> nao:isRelated (P)
+  |  --> nao:lastModified (P)
+  |  --> nao:numericRating (P)
+  |  --> rdf:type (P)
+  |  --> rdfs:comment (P)
+  |  --> rdfs:label (P)
+  |  --> tracker:added (P)
+  |  --> tracker:damaged (P)
+  |  --> tracker:modified (P)
+  |  +-- nie:DataObject (C)
+  |  |  --> nfo:belongsToContainer (P)
+  |  |  --> nie:byteSize (P)
+  |  |  --> nie:created (P)
+  |  |  --> nie:dataSource (P)
+  |  |  --> nie:interpretedAs (P)
+  |  |  --> nie:isPartOf (P)
+  |  |  --> nie:lastRefreshed (P)
+  |  |  --> nie:url (P)
+  |  |  --> tracker:available (P)
+  |  |  +-- nfo:FileDataObject (C)
+  |  |  |  --> nfo:fileCreated (P)
+  |  |  |  --> nfo:fileLastAccessed (P)
+  |  |  |  --> nfo:fileLastModified (P)
+  |  |  |  --> nfo:fileName (P)
+  |  |  |  --> nfo:fileOwner (P)
+  |  |  |  --> nfo:fileSize (P)
+  |  |  |  --> nfo:hasHash (P)
+  |  |  |  --> nfo:permissions (P)
+.fi
+
+.TP
 .B \-s, \-\-search=TERM
 Returns a list of classes and properties which partially match
 \fITERM\fR in the ontology. This is a case insensitive match, for
 example:
 
-.NF
+.nf
 $ tracker-sparql -s text
 
 Classes: 4
@@ -99,57 +189,111 @@ Classes: 4
   http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#PaginatedTextDocument
   http://www.tracker-project.org/temp/nmm#SynchronizedText
 
-Properties: 5
+Properties: 4
   http://www.tracker-project.org/ontologies/tracker#fulltextIndexed
-  http://www.tracker-project.org/ontologies/tracker#fulltextNoLimit
   http://www.semanticdesktop.org/ontologies/2007/01/19/nie#plainTextContent
   http://www.semanticdesktop.org/ontologies/2007/03/22/nmo#plainTextMessageContent
   http://www.tracker-project.org/temp/scal#textLocation
-.FI
+.fi
+
+See also
+.B \-\-tree
+
+
+.TP
+.B \-\-get\-shorthand <CLASS>
+Returns the shorthand for a class given by a URL.
+For example:
+
+.nf
+$ tracker-sparql --get-shorthand http://www.semanticdesktop.org/ontologies/2007/03/22/nmo#plainTextMessageContent
+nmo:plainTextMessageContent
+.fi
+
+.TP
+.B \-\-get\-longhand <CLASS>
+Returns the longhand for a class given in the form of CLASS:PROPERTY.
+For example:
+
+.nf
+$ tracker-sparql --get-longhand nmm:MusicPiece
+http://www.tracker-project.org/temp/nmm#MusicPiece
+.fi
+
 .TP
 .B \-V, \-\-version
 Print version.
+
+.SH ENVIRONMENT
+.TP
+.B TRACKER_SPARQL_BACKEND
+This option allows you to choose which backend you use for connecting
+to the database. This choice can limit your functionality. There are
+three settings.
+
+With "\fBdirect\fR" the connection to the database is made directly to
+the file itself on the disk, there is no intermediary daemon or
+process. The "\fBdirect\fR" approach is purely \fIread-only\fR.
+
+With "\fBbus\fR" the \fBtracker-store\fR process is used to liase with
+the database queuing all requests and managing the connections via an
+IPC / D-Bus. This adds a small overhead \fIBUT\fR this is the only
+approach you can use if you want to \fIwrite\fR to the database.
+
+With "\fBauto\fR" the backend is decided for you, much like it would
+be if this environment variable was undefined.
+
+.TP
+.B TRACKER_PRAGMAS_FILE
+Tracker has a fixed set of PRAGMA settings for creating its SQLite connection.
+With this environment variable pointing to a text file you can override these
+settings. The file is a \\n separated list of SQLite queries to execute on any
+newly created SQLite connection in tracker-store.
 
 .SH EXAMPLES
 .TP
 List all classes
 
 .BR
+.nf
 $ tracker-sparql -q "SELECT ?cl WHERE { ?cl a rdfs:Class }"
+.fi
 
 .TP
 List all properties for the Resources class (see \-\-list-properties)
 
 .BR
-.NF
+.nf
 $ tracker-sparql -q "SELECT ?prop WHERE {
       ?prop a rdf:Property ;
       rdfs:domain <http://www.w3.org/2000/01/rdf-schema#Resource>
  }"
-.FI
+.fi
 
 .TP
 List all class namespace prefixes
 
 .BR
-.NF
+.nf
 $ tracker-sparql -q "SELECT ?prefix ?ns WHERE {
       ?ns a tracker:Namespace ;
       tracker:prefix ?prefix
- }"
-.FI
+  }"
+.fi
 
 .TP
 List all music files
 
 .BR
+.nf
 $ tracker-sparql -q "SELECT ?song WHERE { ?song a nmm:MusicPiece }"
+.fi
 
 .TP
 List all music albums
 
 .BR
-.NF
+.nf
 $ tracker-sparql -q "SELECT ?album ?title COUNT(?song)
                      AS songs
                      SUM(?length) AS totallength
@@ -158,63 +302,65 @@ $ tracker-sparql -q "SELECT ?album ?title COUNT(?song)
       nie:title ?title .
       ?song nmm:musicAlbum ?album ;
       nfo:duration ?length
- } GROUP BY ?album"
-.FI
+  } GROUP BY ?album"
+.fi
 
 .TP
 List all music from a particular artist
 
 .BR
-.NF
+.nf
 $ tracker-sparql -q "SELECT ?song ?title WHERE {
       ?song nmm:performer [ nmm:artistName 'Artist Name' ] ;
       nie:title ?title
- }"
-.FI
+  }"
+.fi
 
 .TP
 Set the played count for a song
 
 .BR
-.NF
+.nf
 $ tracker-sparql -u -q "DELETE {
       <file:///home/user/Music/song.mp3> nie:usageCounter ?count
- } WHERE {
+  } WHERE {
       <file:///home/user/Music/song.mp3> nie:usageCounter ?count
- } INSERT {
+  } INSERT {
       <file:///home/user/Music/song.mp3> nie:usageCounter 42
- }"
-.FI
+  }"
+.fi
 
 .TP
 List all image files
 
 .BR
+.nf
 $ tracker-sparql -q "SELECT ?image WHERE { ?image a nfo:Image }"
+.fi
 
 .TP
 List all image files with a specific tag
 
 .BR
-.NF
+.nf
 $ tracker-sparql -q "SELECT ?image WHERE {
       ?image a nfo:Image ;
       nao:hasTag [ nao:prefLabel 'tag' ]
- }"
-.FI
+  }"
+.fi
 
 .TP
 List all image files created on a specific month and order by date
 
 .BR
-.NF
+.nf
 $ tracker-sparql -q "SELECT ?image ?date WHERE {
       ?image a nfo:Image ;
       nie:contentCreated ?date .
       FILTER (?date >= '2008-07-01T00:00:00' &&
               ?date <  '2008-08-01T00:00:00')
- } ORDER BY ?date"
-.FI
+  } ORDER BY ?date"
+.fi
 
 .SH SEE ALSO
 .BR tracker-store (1),

@@ -34,7 +34,7 @@ HEADER = """
   <suite name="tracker">
     <description>Functional tests for the brilliant tracker</description> """
 
-TEST_CASE_TMPL = """        <case name="%s">
+TEST_CASE_TMPL = """        <case name="%s" timeout="180">
             <description>%s</description>
             <step>%s</step>
         </case>"""
@@ -52,7 +52,7 @@ if (cfg.haveUpstart):
         """
 else:
         PRE_STEPS = """        <pre_steps>
-           <step>su - meego -c "tracker-control -t"</step>
+           <step>while tracker-control -p |grep -q '^Found process ID '; do tracker-control -t; sleep 1; done</step>
         </pre_steps>
         """
 

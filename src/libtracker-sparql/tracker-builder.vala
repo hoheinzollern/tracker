@@ -509,37 +509,7 @@ public class Tracker.Sparql.Builder : Object {
 			states.length--;
 		}
 
-		str.append (" \"");
-
-		char* p = literal;
-		while (*p != '\0') {
-			size_t len = Posix.strcspn ((string) p, "\t\n\r\"\\");
-			str.append_len ((string) p, (long) len);
-			p += len;
-			switch (*p) {
-			case '\t':
-				str.append ("\\t");
-				break;
-			case '\n':
-				str.append ("\\n");
-				break;
-			case '\r':
-				str.append ("\\r");
-				break;
-			case '"':
-				str.append ("\\\"");
-				break;
-			case '\\':
-				str.append ("\\\\");
-				break;
-			default:
-				continue;
-			}
-			p++;
-		}
-
-		str.append ("\"");
-
+		str.append_printf (" \"%s\"", escape_string (literal));
 		states += State.OBJECT;
 
 		length++;
@@ -655,7 +625,7 @@ public class Tracker.Sparql.Builder : Object {
 	 * Since: 0.10
 	 */
 	public void object_blank_close ()
-		requires (state == State.OBJECT && states[states.length - 3] == state.BLANK)
+		requires (state == State.OBJECT && states[states.length - 3] == State.BLANK)
 	{
 		str.append ("]");
 		states.length -= 3;

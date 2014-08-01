@@ -50,7 +50,6 @@ struct TrackerExtractClass {
 
 GType           tracker_extract_get_type                (void);
 TrackerExtract *tracker_extract_new                     (gboolean                disable_shutdown,
-                                                         gboolean                force_internal_extractors,
                                                          const gchar            *force_module);
 
 void            tracker_extract_file                    (TrackerExtract         *extract,
@@ -60,6 +59,11 @@ void            tracker_extract_file                    (TrackerExtract         
                                                          GCancellable           *cancellable,
                                                          GAsyncReadyCallback     cb,
                                                          gpointer                user_data);
+
+#ifdef HAVE_LIBMEDIAART
+MediaArtProcess *
+                tracker_extract_get_media_art_process   (TrackerExtract         *extract);
+#endif
 
 void            tracker_extract_dbus_start              (TrackerExtract         *extract);
 void            tracker_extract_dbus_stop               (TrackerExtract         *extract);

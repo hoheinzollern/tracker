@@ -33,6 +33,20 @@
 #endif
 
 static void
+test_string_to_date_failures_subprocess ()
+{
+	tracker_string_to_date (NULL, NULL, NULL);
+}
+
+static void
+test_string_to_date_failures ()
+{
+	g_test_trap_subprocess ("/libtracker-common/date-time/string_to_date_failures/subprocess", 0, 0);
+	g_test_trap_assert_failed ();
+	g_test_trap_assert_stderr ("*'date_string' failed*");
+}
+
+static void
 test_string_to_date (void)
 {
 	GDate     *expected;
@@ -58,19 +72,16 @@ test_string_to_date (void)
 	result = g_date_new ();
 	g_date_set_time_t (result, result_time_t);
 
-	g_setenv ("TZ", timezone, TRUE);
 	if (timezone) {
+		g_setenv ("TZ", timezone, TRUE);
 		g_free (timezone);
+	} else {
+		g_unsetenv ("TZ");
 	}
 
 	g_assert_cmpint (g_date_get_year (expected), ==, g_date_get_year (result));
 	g_assert_cmpint (g_date_get_day (expected), ==, g_date_get_day (result));
 	g_assert_cmpint (g_date_get_month (expected), ==, g_date_get_month (result));
-
-	if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
-		result_time_t = tracker_string_to_date (NULL, NULL, NULL);
-	}
-	g_test_trap_assert_failed ();
 
 	result_time_t = tracker_string_to_date ("", NULL, &error);
 	g_assert_cmpint (result_time_t, ==, -1);
@@ -162,7 +173,7 @@ test_date_time_from_string ()
         g_assert_cmpint (tracker_date_time_get_offset (&value), ==, -10800);
 
         /* No offset */
-        tracker_date_time_set_from_string (&value, "2011-10-28T17:43:00", &error);
+        tracker_date_time_set_from_string (&value, "2011-10-28T17:43:00Z", &error);
         g_assert (!error);
         g_assert_cmpint (tracker_date_time_get_time (&value), ==, 1319823780);
         g_assert_cmpint (tracker_date_time_get_offset (&value), ==, 0);
@@ -223,13 +234,16 @@ test_date_time_get_local_time ()
 gint
 main (gint argc, gchar **argv) 
 {
-        g_type_init ();
         g_test_init (&argc, &argv, NULL);
 
         g_test_add_func ("/libtracker-common/date-time/date_to_string",
                          test_date_to_string);
         g_test_add_func ("/libtracker-common/date-time/string_to_date",
                          test_string_to_date);
+        g_test_add_func ("/libtracker-common/date-time/string_to_date_failures",
+                         test_string_to_date_failures);
+        g_test_add_func ("/libtracker-common/date-time/string_to_date_failures/subprocess",
+                         test_string_to_date_failures_subprocess);
         g_test_add_func ("/libtracker-common/date-time/get_set",
                          test_date_time_get_set);
         g_test_add_func ("/libtracker-common/date-time/from_string",

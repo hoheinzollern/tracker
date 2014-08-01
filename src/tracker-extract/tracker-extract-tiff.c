@@ -20,10 +20,6 @@
 
 #include "config.h"
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -291,10 +287,7 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	metadata = tracker_extract_info_get_metadata_builder (info);
 	graph = tracker_extract_info_get_graph (info);
 
-	fd = g_open (filename, O_RDONLY | O_NOATIME, 0);
-	if (fd == -1 && errno == EPERM) {
-		fd = g_open (filename, O_RDONLY, 0);
-	}
+	fd = tracker_file_open_fd (filename);
 
 	if (fd == -1) {
 		g_warning ("Could not open tiff file '%s': %s\n",
@@ -860,6 +853,7 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	tracker_xmp_free (xd);
 	tracker_iptc_free (id);
 	g_free (uri);
+	close (fd);
 
 	return TRUE;
 }

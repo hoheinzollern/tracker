@@ -1,4 +1,0 @@
-[ExtractorRule]
-ModulePath=@modulesdir@/libextract-msoffice.so
-MimeTypes=application/msword;application/vnd.ms-powerpoint;application/vnd.ms-excel;application/vnd.ms-*;
-

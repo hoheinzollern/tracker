@@ -1,5 +1,3 @@
-include $(top_srcdir)/Makefile.decl
-
 if HAVE_TRACKER_FTS
 libstemmer_dir = libstemmer
 endif
@@ -15,6 +13,7 @@ SUBDIRS =                                              \
 	libtracker-sparql                              \
 	$(libtrackerfts_dir)                           \
 	libtracker-bus                                 \
+	libtracker-control                             \
 	libtracker-data                                \
 	libtracker-direct                              \
 	libtracker-sparql-backend                      \
@@ -24,10 +23,15 @@ SUBDIRS =                                              \
 	plugins                                        \
 	tracker-store                                  \
 	tracker-control                                \
-	tracker-utils                                  \
-	tracker-extract                                \
-	tracker-writeback                              \
-	vapi
+	tracker-utils
+
+if HAVE_TRACKER_EXTRACT
+SUBDIRS += tracker-extract
+endif
+
+if HAVE_TRACKER_WRITEBACK
+SUBDIRS += tracker-writeback
+endif
 
 if HAVE_TRACKER_PREFERENCES
 SUBDIRS += tracker-preferences
@@ -35,12 +39,4 @@ endif
 
 if HAVE_TRACKER_NEEDLE
 SUBDIRS += tracker-needle
-endif
-
-if HAVE_TRACKER_SEARCH_BAR
-SUBDIRS += tracker-search-bar
-endif
-
-if HAVE_TRACKER_EXPLORER
-SUBDIRS += tracker-explorer
 endif

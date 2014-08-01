@@ -1,4 +1,0 @@
-[ExtractorRule]
-ModulePath=@modulesdir@/libextract-html.so
-MimeTypes=text/html;application/xhtml+xml;
-

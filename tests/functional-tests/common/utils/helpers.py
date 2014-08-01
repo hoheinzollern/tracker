@@ -18,11 +18,10 @@
 # 02110-1301, USA.
 #
 import dbus
-import glib
-import gobject
-import commands
+from gi.repository import GLib
+from gi.repository import GObject
 import os
-import signal
+import sys
 import subprocess
 import time
 from dbus.mainloop.glib import DBusGMainLoop
@@ -48,6 +47,12 @@ class Helper:
     The helper will fail if the process is already running. Use
     test-runner.sh to ensure the processes run inside a separate DBus
     session bus.
+
+    The process is watched using a timed GLib main loop source. If the process
+    exits with an error code, the test will abort the next time the main loop
+    is entered (or straight away if currently running the main loop). Tests
+    that block waiting for results in time.sleep() won't benefit from this, but
+    it works for those that use await_resource_inserted()/deleted() and others.
     """
 
     BUS_NAME = None
@@ -58,11 +63,24 @@ class Helper:
         self.bus = None
         self.bus_admin = None
 
+    def install_glib_excepthook(self, loop):
+        """
+        Handler to abort test if an exception occurs inside the GLib main loop.
+        """
+        old_hook = sys.excepthook
+        def new_hook(etype, evalue, etb):
+            old_hook(etype, evalue, etb)
+            GLib.MainLoop.quit(loop)
+            sys.exit()
+        sys.excepthook = new_hook
+
     def _get_bus (self):
         if self.bus is not None:
             return
 
-        self.loop = gobject.MainLoop ()
+        self.loop = GObject.MainLoop ()
+
+        self.install_glib_excepthook(self.loop)
 
         dbus_loop = DBusGMainLoop (set_as_default=True)
         self.bus = dbus.SessionBus (dbus_loop)
@@ -88,6 +106,8 @@ class Helper:
                 FNULL = open ('/dev/null', 'w')
                 kws = { 'stdout': FNULL, 'stderr': FNULL }
 
+            command = [path] + flags
+            log ("Starting %s" % ' '.join(command))
             return subprocess.Popen ([path] + flags, **kws)
 
     def _stop_process (self):
@@ -96,6 +116,14 @@ class Helper:
                 print ("Kill %s manually" % self.PROCESS_NAME)
                 self.loop.run ()
         else:
+            # FIXME: this can hang if the we try to terminate the
+            # process too early in its lifetime ... if you see:
+            #
+            #   GLib-CRITICAL **: g_main_loop_quit: assertion 'loop != NULL' failed
+            #
+            # This means that the signal_handler() function was called
+            # before the main loop was started and the process failed to
+            # terminate.
             self.process.terminate ()
             self.process.wait ()
         return False
@@ -119,11 +147,15 @@ class Helper:
         if status is None:
             return True
 
+        if status == 0 and not self.abort_if_process_exits_with_status_0:
+            return True
+
         raise Exception("%s exited with status: %i" % (self.PROCESS_NAME, status))
 
     def _timeout_on_idle_cb (self):
         log ("[%s] Timeout waiting... asumming idle." % self.PROCESS_NAME)
         self.loop.quit ()
+        self.timeout_id = None
         return False
 
 
@@ -143,20 +175,27 @@ class Helper:
                                                               dbus_interface="org.freedesktop.DBus")
 
         self.process = self._start_process ()
+        log ('[%s] Started process %i' % (self.PROCESS_NAME, self.process.pid))
+
+        self.process_watch_timeout = GLib.timeout_add (200, self._process_watch_cb)
+
+        self.abort_if_process_exits_with_status_0 = True
 
         # Run the loop until the bus name appears, or the process dies.
-        self.process_watch_timeout = glib.timeout_add (200, self._process_watch_cb)
-
         self.loop.run ()
 
-        glib.source_remove (self.process_watch_timeout)
+        self.abort_if_process_exits_with_status_0 = False
 
     def stop (self):
         if self.available:
             # It should step out of this loop when the miner disappear from the bus
-            glib.idle_add (self._stop_process)
-            self.timeout_id = glib.timeout_add_seconds (REASONABLE_TIMEOUT, self._timeout_on_idle_cb)
+            GLib.source_remove(self.process_watch_timeout)
+
+            GLib.idle_add (self._stop_process)
+            self.timeout_id = GLib.timeout_add_seconds (REASONABLE_TIMEOUT, self._timeout_on_idle_cb)
             self.loop.run ()
+            if self.timeout_id is not None:
+                GLib.source_remove(self.timeout_id)
 
         log ("[%s] stop." % self.PROCESS_NAME)
         # Disconnect the signals of the next start we get duplicated messages
@@ -183,6 +222,8 @@ class StoreHelper (Helper):
     PROCESS_NAME = "tracker-store"
     BUS_NAME = cfg.TRACKER_BUSNAME
 
+    graph_updated_handler_id = 0
+
     def start (self):
         Helper.start (self)
 
@@ -207,6 +248,172 @@ class StoreHelper (Helper):
         self.status_iface.Wait ()
         log ("[%s] ready." % self.PROCESS_NAME)
 
+        self.reset_graph_updates_tracking ()
+        self.graph_updated_handler_id = self.bus.add_signal_receiver (self._graph_updated_cb,
+                                                                      signal_name = "GraphUpdated",
+                                                                      path = cfg.TRACKER_OBJ_PATH,
+                                                                      dbus_interface = cfg.RESOURCES_IFACE)
+
+    def stop (self):
+        Helper.stop (self)
+
+        self.bus._clean_up_signal_match (self.graph_updated_handler_id)
+
+    # A system to follow GraphUpdated and make sure all changes are tracked.
+    # This code saves every change notification received, and exposes methods
+    # to await insertion or deletion of a certain resource which first check
+    # the list of events already received and wait for more if the event has
+    # not yet happened.
+
+    def reset_graph_updates_tracking (self):
+        self.inserts_list = []
+        self.deletes_list = []
+        self.inserts_match_function = None
+        self.deletes_match_function = None
+        self.graph_updated_timed_out = False
+
+    def _graph_updated_timeout_cb (self):
+        # Don't fail here, exceptions don't get propagated correctly
+        # from the GMainLoop
+        self.graph_updated_timed_out = True
+        self.loop.quit ()
+
+    def _graph_updated_cb (self, class_name, deletes_list, inserts_list):
+        """
+        Process notifications from tracker-store on resource changes.
+        """
+        matched = False
+        if inserts_list is not None:
+            if self.inserts_match_function is not None:
+                # The match function will remove matched entries from the list
+                (matched, inserts_list) = self.inserts_match_function (inserts_list)
+            self.inserts_list += inserts_list
+
+        if deletes_list is not None:
+            if self.deletes_match_function is not None:
+                (matched, deletes_list) = self.deletes_match_function (deletes_list)
+            self.deletes_list += deletes_list
+
+    def await_resource_inserted (self, rdf_class, url = None, title = None):
+        """
+        Block until a resource matching the parameters becomes available
+        """
+        assert (self.inserts_match_function == None)
+
+        def match_cb (inserts_list, in_main_loop = True):
+            matched = False
+            filtered_list = []
+            known_subjects = set ()
+
+            #print "Got inserts: ", inserts_list, "\n"
+
+            # FIXME: this could be done in an easier way: build one query that filters
+            # based on every subject id in inserts_list, and returns the id of the one
+            # that matched :)
+            for insert in inserts_list:
+                id = insert[1]
+
+                if not matched and id not in known_subjects:
+                    known_subjects.add (id)
+
+                    where = "  ?urn a %s " % rdf_class
+
+                    if url is not None:
+                        where += "; nie:url \"%s\"" % url
+
+                    if title is not None:
+                        where += "; nie:title \"%s\"" % title
+
+                    query = "SELECT ?urn WHERE { %s FILTER (tracker:id(?urn) = %s)}" % (where, insert[1])
+                    #print "%s\n" % query
+                    result_set = self.query (query)
+                    #print result_set, "\n\n"
+
+                    if len (result_set) > 0:
+                        matched = True
+                        self.matched_resource_urn = result_set[0][0]
+                        self.matched_resource_id = insert[1]
+
+                if not matched or id != self.matched_resource_id:
+                    filtered_list += [insert]
+
+            if matched and in_main_loop:
+                GLib.source_remove (self.graph_updated_timeout_id)
+                self.graph_updated_timeout_id = 0
+                self.inserts_match_function = None
+                self.loop.quit ()
+
+            return (matched, filtered_list)
+
+
+        self.matched_resource_urn = None
+        self.matched_resource_id = None
+
+        log ("Await new %s (%i existing inserts)" % (rdf_class, len (self.inserts_list)))
+
+        # Check the list of previously received events for matches
+        (existing_match, self.inserts_list) = match_cb (self.inserts_list, False)
+
+        if not existing_match:
+            self.graph_updated_timeout_id = GLib.timeout_add_seconds (REASONABLE_TIMEOUT,
+                                                                      self._graph_updated_timeout_cb)
+            self.inserts_match_function = match_cb
+
+            # Run the event loop until the correct notification arrives
+            self.loop.run ()
+
+        if self.graph_updated_timed_out:
+            raise Exception ("Timeout waiting for resource: class %s, URL %s, title %s" % (rdf_class, url, title))
+
+        return (self.matched_resource_id, self.matched_resource_urn)
+
+
+    def await_resource_deleted (self, id, fail_message = None):
+        """
+        Block until we are notified of a resources deletion
+        """
+        assert (self.deletes_match_function == None)
+
+        def match_cb (deletes_list, in_main_loop = True):
+            matched = False
+            filtered_list = []
+
+            #print "Looking for %i in " % id, deletes_list, "\n"
+
+            for delete in deletes_list:
+                if delete[1] == id:
+                    matched = True
+                else:
+                    filtered_list += [delete]
+
+            if matched and in_main_loop:
+                GLib.source_remove (self.graph_updated_timeout_id)
+                self.graph_updated_timeout_id = 0
+                self.deletes_match_function = None
+
+            self.loop.quit ()
+
+            return (matched, filtered_list)
+
+        log ("Await deletion of %i (%i existing)" % (id, len (self.deletes_list)))
+
+        (existing_match, self.deletes_list) = match_cb (self.deletes_list, False)
+
+        if not existing_match:
+            self.graph_updated_timeout_id = GLib.timeout_add_seconds (REASONABLE_TIMEOUT,
+                                                                      self._graph_updated_timeout_cb)
+            self.deletes_match_function = match_cb
+
+            # Run the event loop until the correct notification arrives
+            self.loop.run ()
+
+        if self.graph_updated_timed_out:
+            if fail_message is not None:
+                raise Exception (fail_message)
+            else:
+                raise Exception ("Resource %i has not been deleted." % id)
+
+        return
 
     def query (self, query, timeout=5000):
         try:
@@ -277,9 +484,12 @@ class StoreHelper (Helper):
         """
         try:
             result = self.resources.SparqlQuery (QUERY % (ontology_class))
-        except dbus.DBusException:
-            self.connect ()
-            result = self.resources.SparqlQuery (QUERY % (ontology_class))
+        except dbus.DBusException as (e):
+            if (e.get_dbus_name().startswith ("org.freedesktop.DBus")):
+                self.start ()
+                result = self.resources.SparqlQuery (QUERY % (ontology_class))
+            else:
+                raise (e)
             
         if (len (result) == 1):
             return int (result [0][0])
@@ -340,9 +550,10 @@ class MinerFsHelper (Helper):
                                                           dbus_interface=cfg.MINER_IFACE)
 
         # It should step out of this loop after progress changes to "Idle"
-        self.timeout_id = glib.timeout_add_seconds (REASONABLE_TIMEOUT, self._timeout_on_idle_cb)
+        self.timeout_id = GLib.timeout_add_seconds (REASONABLE_TIMEOUT, self._timeout_on_idle_cb)
         self.loop.run ()
-        glib.source_remove (self.timeout_id)
+        if self.timeout_id is not None:
+            GLib.source_remove (self.timeout_id)
 
         bus_object = self.bus.get_object (cfg.MINERFS_BUSNAME,
                                           cfg.MINERFS_OBJ_PATH)
@@ -366,11 +577,12 @@ class MinerFsHelper (Helper):
                                                           signal_name="Progress",
                                                           path=cfg.MINERFS_OBJ_PATH,
                                                           dbus_interface=cfg.MINER_IFACE)
-        self.timeout_id = glib.timeout_add_seconds (REASONABLE_TIMEOUT, self._timeout_on_idle_cb)
+        self.timeout_id = GLib.timeout_add_seconds (REASONABLE_TIMEOUT, self._timeout_on_idle_cb)
 
         self.loop.run ()
 
-        glib.source_remove (self.timeout_id)
+        if self.timeout_id is not None:
+            GLib.source_remove (self.timeout_id)
         self.bus._clean_up_signal_match (self.status_match)
 
 
@@ -378,207 +590,6 @@ class ExtractorHelper (Helper):
 
     PROCESS_NAME = 'tracker-extract'
     BUS_NAME = cfg.TRACKER_EXTRACT_BUSNAME
-
-    def start (self):
-        Helper.start (self)
-
-        bus_object = self.bus.get_object (cfg.TRACKER_EXTRACT_BUSNAME,
-                                          cfg.TRACKER_EXTRACT_OBJ_PATH)
-        self.extractor = dbus.Interface (bus_object,
-                                         dbus_interface=cfg.TRACKER_EXTRACT_IFACE)
-
-        # FIXME: interface does not appear straight away
-        time.sleep (0.2)
-
-    def get_metadata (self, filename, mime):
-        """
-        Calls the extractor a returns a dictionary of property, value.
-        Example:
-         { 'nie:filename': 'a.jpeg' ,
-           'tracker:added': '2008-12-12T12:23:34Z'
-         }
-        """
-        metadata = {}
-        try:
-            preupdate, postupdate, embedded, where = self.extractor.GetMetadata (filename, mime, "")
-            extras = self.__process_where_part (where)
-            for attribute_value in self.__process_lines (embedded):
-                att, value = attribute_value.split (" ", 1)
-                if value.startswith ("?") and extras.has_key (value):
-                    value = extras[value]
-
-                if metadata.has_key (att):
-                    metadata [att].append (value)
-                else:
-                    metadata [att] = [value]
-
-            return metadata
-        except dbus.DBusException, e:
-            raise NoMetadataException ()
-            
-    def __process_lines (self, embedded):
-        """
-        Translate each line in a "prop value" string, handling anonymous nodes.
-
-        Example:
-             nfo:width 699 ;  -> 'nfo:width 699'
-        or
-             nao:hasTag [ a nao:Tag ;
-             nao:prefLabel "tracker"] ;  -> nao:hasTag:prefLabel 'tracker'
-
-        Would be so cool to implement this with yield and generators... :)
-        """
-        grouped_lines = []
-        current_line = ""
-        anon_node_open = False
-        for l in embedded.split ("\n\t"):
-            if "[" in l:
-                current_line = current_line + l
-                anon_node_open = True
-                continue
-
-            if "]" in l:
-                anon_node_open = False
-                current_line += l
-                final_lines = self.__handle_anon_nodes (current_line.strip ())
-                grouped_lines = grouped_lines + final_lines
-                current_line = ""
-                continue
-
-            if anon_node_open:
-                current_line += l
-            else:
-                if (len (l.strip ()) == 0):
-                    continue
-                    
-                final_lines = self.__handle_multivalues (l.strip ())
-                grouped_lines = grouped_lines + final_lines
-
-        return map (self.__clean_value, grouped_lines)
-
-    def __process_where_part (self, where):
-        gettags = re.compile ("(\?\w+)\ a\ nao:Tag\ ;\ nao:prefLabel\ \"([\w\ -]+)\"")
-        tags = {}
-        for l in where.split ("\n"):
-            if len (l) == 0:
-                continue
-            match = gettags.search (l)
-            if (match):
-                tags [match.group(1)] = match.group (2)
-            else:
-                print "This line is not a tag:", l
-
-        return tags
-
-    def __handle_multivalues (self, line):
-        """
-        Split multivalues like:
-        a nfo:Image, nmm:Photo ;
-           -> a nfo:Image ;
-           -> a nmm:Photo ;
-        """
-        hasEscapedComma = re.compile ("\".+,.+\"")
-
-        if "," in line and not hasEscapedComma.search (line):
-            prop, multival = line.split (" ", 1)
-            results = []
-            for value in multival.split (","):
-                results.append ("%s %s" % (prop, value.strip ()))
-            return results
-        else:
-            return [line]
-       
-    def __handle_anon_nodes (self, line):
-        """
-        Traslates anonymous nodes in 'flat' properties:
-
-        nao:hasTag [a nao:Tag; nao:prefLabel "xxx"]
-                 -> nao:hasTag:prefLabel "xxx"
-                 
-        slo:location [a slo:GeoLocation; slo:postalAddress <urn:uuid:1231-123> .]
-                -> slo:location <urn:uuid:1231-123> 
-                
-        nfo:hasMediaFileListEntry [ a nfo:MediaFileListEntry ; nfo:entryUrl "file://x.mp3"; nfo:listPosition 1]
-                -> nfo:hasMediaFileListEntry:entryUrl "file://x.mp3"
-
-        """
-        
-        # hasTag case
-        if line.startswith ("nao:hasTag"):
-            getlabel = re.compile ("nao:prefLabel\ \"([\w\ -]+)\"")
-            match = getlabel.search (line)
-            if (match):
-                line = 'nao:hasTag:prefLabel "%s" ;' % (match.group(1))
-                return [line]
-            else:
-                print "Whats wrong on line", line, "?"
-                return [line]
-
-        # location case
-        elif line.startswith ("slo:location"):
-            results = []
-
-            # Can have country AND/OR city
-            getpa = re.compile ("slo:postalAddress\ \<([\w:-]+)\>")
-            pa_match = getpa.search (line)
-            
-            if (pa_match):
-                results.append ('slo:location:postalAddress "%s" ;' % (pa_match.group(1)))
-            else:
-                print "FIXME another location subproperty in ", line
-
-            return results
-        elif line.startswith ("nco:creator"):
-            getcreator = re.compile ("nco:fullname\ \"([\w\ ]+)\"")
-            creator_match = getcreator.search (line)
-
-            if (creator_match):
-                new_line = 'nco:creator:fullname "%s" ;' % (creator_match.group (1))
-                return [new_line]
-            else:
-                print "Something special in this line '%s'" % (line)
-
-        elif line.startswith ("nfo:hasMediaFileListEntry"):
-            return self.__handle_playlist_entries (line)
-        
-        else:
-            return [line]
-
-    def __handle_playlist_entries (self, line):
-        """
-        Playlist entries come in one big line:
-        nfo:hMFLE [ a nfo:MFLE; nfo:entryUrl '...'; nfo:listPosition X] , [ ... ], [ ... ]
-          -> nfo:hMFLE:entryUrl '...'
-          -> nfo:hMFLE:entryUrl '...'
-          ...
-        """
-        geturl = re.compile ("nfo:entryUrl \"([\w\.\:\/]+)\"")
-        entries = line.strip () [len ("nfo:hasMediaFileListEntry"):]
-        results = []
-        for entry in entries.split (","):
-            url_match = geturl.search (entry)
-            if (url_match):
-                new_line = 'nfo:hasMediaFileListEntry:entryUrl "%s" ;' % (url_match.group (1))
-                results.append (new_line)
-            else:
-                print " *** Something special in this line '%s'" % (entry)
-        return results
-
-    def __clean_value (self, value):
-        """
-        the value comes with a ';' or a '.' at the end
-        """
-        if (len (value) < 2):
-            return value.strip ()
-        
-        clean = value.strip ()
-        if value[-1] in [';', '.']:
-            clean = value [:-1]
-
-        clean = clean.replace ("\"", "")
-            
-        return clean.strip ()
-
 
 class WritebackHelper (Helper):
 

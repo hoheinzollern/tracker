@@ -40,14 +40,16 @@ typedef enum {
 	ODT_TAG_TYPE_GENERATOR,
 	ODT_TAG_TYPE_WORD_TEXT,
 	ODT_TAG_TYPE_SLIDE_TEXT,
-	ODT_TAG_TYPE_SPREADSHEET_TEXT
+	ODT_TAG_TYPE_SPREADSHEET_TEXT,
+	ODT_TAG_TYPE_GRAPHICS_TEXT
 } ODTTagType;
 
 typedef enum {
 	FILE_TYPE_INVALID,
 	FILE_TYPE_ODP,
 	FILE_TYPE_ODT,
-	FILE_TYPE_ODS
+	FILE_TYPE_ODS,
+	FILE_TYPE_ODG
 } ODTFileType;
 
 typedef struct {
@@ -59,7 +61,6 @@ typedef struct {
 
 typedef struct {
 	ODTTagType current;
-	gboolean styles_present;
 	ODTFileType file_type;
 	GString *content;
 	gulong bytes_pending;
@@ -128,7 +129,6 @@ extract_oasis_content (const gchar          *uri,
 	/* Create parse info */
 	info.current = ODT_TAG_TYPE_UNKNOWN;
 	info.file_type = file_type;
-	info.styles_present = FALSE;
 	info.content = g_string_new ("");
 	info.bytes_pending = total_bytes;
 
@@ -215,6 +215,8 @@ tracker_extract_get_metadata (TrackerExtractInfo *extract_info)
 		file_type = FILE_TYPE_ODP;
 	} else if (g_ascii_strcasecmp (mime_used, "application/vnd.oasis.opendocument.spreadsheet") == 0) {
 		file_type = FILE_TYPE_ODS;
+	} else if (g_ascii_strcasecmp (mime_used, "application/vnd.oasis.opendocument.graphics") == 0) {
+		file_type = FILE_TYPE_ODG;
 	} else {
 		g_message ("Mime type was not recognised:'%s'", mime_used);
 		file_type = FILE_TYPE_INVALID;
@@ -386,49 +388,17 @@ xml_start_element_handler_content (GMarkupParseContext  *context,
                                    GError              **error)
 {
 	ODTContentParseInfo *data = user_data;
-	const gchar **a;
-	const gchar **v;
 
 	switch (data->file_type) {
 	case FILE_TYPE_ODT:
-		if ((g_ascii_strcasecmp (element_name, "text:table-of-content") == 0) ||
-		    (g_ascii_strcasecmp (element_name, "text:table-index") == 0) ||
-		    (g_ascii_strcasecmp (element_name, "text:illustration-index") == 0) ||
-		    (g_ascii_strcasecmp (element_name, "text:section") == 0)) {
-			data->styles_present = TRUE;
-		} else if (g_ascii_strcasecmp (element_name, "table:table-cell") == 0) {
-			data->current = ODT_TAG_TYPE_WORD_TEXT;
-		} else if (g_ascii_strcasecmp (element_name, "text:p") == 0) {
-			if (data->styles_present) {
-				data->current = ODT_TAG_TYPE_WORD_TEXT;
-				break;
-			}
-
-			for (a = attribute_names, v = attribute_values; *a; ++a, ++v) {
-				if (g_ascii_strcasecmp (*a, "text:style-name") != 0) {
-					continue;
-				}
-
-				if ((g_ascii_strcasecmp (*v, "title-article") == 0) ||
-				    (g_ascii_strcasecmp (*v, "para-padding") == 0) ||
-				    (g_ascii_strcasecmp (*v, "para-screen") == 0)) {
-					data->current = ODT_TAG_TYPE_WORD_TEXT;
-				}
-			}
-		} else if (g_ascii_strcasecmp (element_name, "text:h") == 0) {
-			for (a = attribute_names, v = attribute_values; *a; ++a, ++v) {
-				if (g_ascii_strcasecmp (*a, "text:style-name") != 0) {
-					continue;
-				}
-
-				if (g_ascii_strncasecmp (*v, "Heading", 7) == 0) {
-					data->current = ODT_TAG_TYPE_WORD_TEXT;
-				}
-			}
-		} else if (g_ascii_strcasecmp (element_name, "text:span") == 0) {
-			data->current = ODT_TAG_TYPE_WORD_TEXT;
-		} else if ((g_ascii_strcasecmp (element_name, "text:a") == 0) ||
-		           (g_ascii_strcasecmp (element_name, "text:s") == 0)) {
+		if ((g_ascii_strcasecmp (element_name, "text:p") == 0) ||
+		    (g_ascii_strcasecmp (element_name, "text:h") == 0) ||
+		    (g_ascii_strcasecmp (element_name, "text:a") == 0) ||
+		    (g_ascii_strcasecmp (element_name, "text:span") == 0) ||
+		    (g_ascii_strcasecmp (element_name, "table:table-cell") == 0) ||
+		    (g_ascii_strcasecmp (element_name, "text:s") == 0) ||
+		    (g_ascii_strcasecmp (element_name, "text:tab") == 0) ||
+		    (g_ascii_strcasecmp (element_name, "text:line-break") == 0)) {
 			data->current = ODT_TAG_TYPE_WORD_TEXT;
 		} else {
 			data->current = -1;
@@ -442,6 +412,14 @@ xml_start_element_handler_content (GMarkupParseContext  *context,
 	case FILE_TYPE_ODS:
 		if (g_ascii_strncasecmp (element_name, "text", 4) == 0) {
 			data->current = ODT_TAG_TYPE_SPREADSHEET_TEXT;
+		} else {
+			data->current = -1;
+		}
+		break;
+
+	case FILE_TYPE_ODG:
+		if (g_ascii_strncasecmp (element_name, "text", 4) == 0) {
+			data->current = ODT_TAG_TYPE_GRAPHICS_TEXT;
 		} else {
 			data->current = -1;
 		}
@@ -461,23 +439,13 @@ xml_end_element_handler_content (GMarkupParseContext  *context,
 {
 	ODTContentParseInfo *data = user_data;
 
-	switch (data->file_type) {
-	case FILE_TYPE_ODT:
-		if ((g_ascii_strcasecmp (element_name, "text:table-of-content") == 0) ||
-		    (g_ascii_strcasecmp (element_name, "text:table-index") == 0) ||
-		    (g_ascii_strcasecmp (element_name, "text:illustration-index") == 0) ||
-		    (g_ascii_strcasecmp (element_name, "text:section") == 0)) {
-			data->styles_present = FALSE;
-		}
-		break;
-	default:
-		break;
-	}
-
-	if ((g_ascii_strcasecmp (element_name, "text:a") != 0) &&
-	    (g_ascii_strcasecmp (element_name, "text:s") != 0)) {
+	/* Don't stop processing if it was a so-called 'empty' tag (e.g. <text:tab/>) */
+	if (!((g_ascii_strcasecmp (element_name, "text:s") == 0)   ||
+	      (g_ascii_strcasecmp (element_name, "text:tab") == 0) ||
+	      (g_ascii_strcasecmp (element_name, "text:line-break") == 0))) {
 		data->current = -1;
 	}
+
 }
 
 static void
@@ -494,6 +462,7 @@ xml_text_handler_content (GMarkupParseContext  *context,
 	case ODT_TAG_TYPE_WORD_TEXT:
 	case ODT_TAG_TYPE_SLIDE_TEXT:
 	case ODT_TAG_TYPE_SPREADSHEET_TEXT:
+	case ODT_TAG_TYPE_GRAPHICS_TEXT:
 		if (data->bytes_pending == 0) {
 			g_set_error_literal (error,
 			                     maximum_size_error_quark, 0,

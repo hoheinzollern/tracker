@@ -290,11 +290,11 @@ summary_metadata_cb (gpointer key,
 	} else if (g_strcmp0 (key, "dc:creator") == 0) {
 		metadata_add_gvalue (info->metadata, info->uri, "nco:creator", val, "nco:Contact", "nco:fullname", FALSE);
 	} else if (g_strcmp0 (key, "dc:keywords") == 0) {
-		gchar *keywords = g_strdup_value_contents (val);
+		gchar *keywords, *str = g_strdup_value_contents (val);
 		gchar *lasts, *keyw;
 		size_t len;
 
-		keyw = keywords;
+		keyw = keywords = str;
 		keywords = strchr (keywords, '"');
 
 		if (keywords) {
@@ -314,7 +314,7 @@ summary_metadata_cb (gpointer key,
 			tracker_sparql_builder_object_unvalidated (info->metadata, keyw);
 		}
 
-		g_free (keyw);
+		g_free (str);
 	} else if (g_strcmp0 (key, "dc:description") == 0) {
 		metadata_add_gvalue (info->metadata, info->uri, "nie:comment", val, NULL, NULL, FALSE);
 	} else if (g_strcmp0 (key, "gsf:page-count") == 0) {
@@ -752,6 +752,7 @@ open_file (const gchar *filename, FILE *file)
 {
 	GsfInput *input;
 	GsfInfile *infile;
+	GError *error = NULL;
 
 	input = gsf_input_stdio_new_FILE (filename, file, TRUE);
 	
@@ -759,7 +760,13 @@ open_file (const gchar *filename, FILE *file)
 		return NULL;
 	}
 
-	infile = gsf_infile_msole_new (input, NULL);
+	infile = gsf_infile_msole_new (input, &error);
+
+	if (error) {
+		g_warning ("Failed to open file: %s", error->message);
+		g_error_free (error);
+	}
+
 	g_object_unref (input);
 
 	return infile;
@@ -1560,7 +1567,7 @@ extract_summary (TrackerSparqlBuilder *metadata,
 		GError *error = NULL;
 
 		md = gsf_doc_meta_data_new ();
-		error = gsf_msole_metadata_read (stream, md);
+		error = gsf_doc_meta_data_read_from_msole (md, stream);
 
 		if (error) {
 			g_warning ("Could not extract summary information, %s",
@@ -1592,7 +1599,7 @@ extract_summary (TrackerSparqlBuilder *metadata,
 
 		md = gsf_doc_meta_data_new ();
 
-		error = gsf_msole_metadata_read (stream, md);
+		error = gsf_doc_meta_data_read_from_msole (md, stream);
 		if (error) {
 			g_warning ("Could not extract document summary information, %s",
 			           error->message ? error->message : "no error given");

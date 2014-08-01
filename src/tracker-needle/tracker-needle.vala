@@ -58,6 +58,7 @@ public class Tracker.Needle {
 	private uint limit = 500;
 	static bool current_find_in_filelist = true;
 	static bool current_find_in_icons = true;
+	private Widget current_view;
 
 	private ResultStore categories_model;
 	private ResultStore files_model;
@@ -105,16 +106,16 @@ public class Tracker.Needle {
 		                            Tracker.Query.Match.FTS,
 		                            "?urn",
 		                            "nie:url(?urn)",
-		                            "tracker:coalesce(nie:title(?urn), nfo:fileName(?urn))",
+		                            "tracker:coalesce(fts:snippet(?urn),nie:title(?urn), nfo:fileName(?urn))",
 		                            "\"\"",
 		                            "nfo:duration(?urn)",
 		                            "nie:url(?urn)");
 		categories_model.add_query (Tracker.Query.Type.DOCUMENTS,
-		                            Tracker.Query.Match.FTS,
+		                            Tracker.Query.Match.FTS_INDIRECT,
 		                            "?urn",
 		                            "nie:url(?urn)",
 		                            "tracker:coalesce(nie:title(?urn), nfo:fileName(?urn))",
-		                            "tracker:coalesce(nco:fullname(?creator), nco:fullname(?publisher))",
+		                            "tracker:coalesce(fts:snippet(?urn),nco:fullname(?creator), nco:fullname(?publisher))",
 		                            "nfo:pageCount(?urn)",
 		                            "nie:url(?urn)");
 		categories_model.add_query (Tracker.Query.Type.MAIL,
@@ -122,14 +123,14 @@ public class Tracker.Needle {
 		                            "?urn",
 		                            "nie:url(?urn)",
 		                            "nmo:messageSubject(?urn)",
-		                            "tracker:coalesce(nco:fullname(?sender), nco:nickname(?sender), nco:emailAddress(?sender))",
+		                            "tracker:coalesce(fts:snippet(?urn),nco:fullname(?sender), nco:nickname(?sender), nco:emailAddress(?sender))",
 		                            "nmo:receivedDate(?urn)",
 		                            "fn:concat(\"To: \", tracker:coalesce(nco:fullname(?to), nco:nickname(?to), nco:emailAddress(?to)))");
 		categories_model.add_query (Tracker.Query.Type.FOLDERS,
 		                            Tracker.Query.Match.FTS,
 		                            "?urn",
 		                            "nie:url(?urn)",
-		                            "tracker:coalesce(nie:title(?urn), nfo:fileName(?urn))",
+		                            "tracker:coalesce(fts:snippet(?urn),nie:title(?urn), nfo:fileName(?urn))",
 		                            "nie:url(?parent)",
 		                            "nfo:fileLastModified(?urn)",
 		                            "?tooltip");
@@ -304,6 +305,7 @@ public class Tracker.Needle {
 		search = search_list.get_child () as Entry;
 		search.changed.connect (search_changed);
 		search.activate.connect (search_activated);
+		search.key_press_event.connect (search_key_press_event);
 		search_history_insert (history.get ());
 
 		spinner = new Spinner ();
@@ -361,6 +363,19 @@ public class Tracker.Needle {
 		// Add Ctrl+W close window semantics
 		if (Gdk.ModifierType.CONTROL_MASK in event.state && Gdk.keyval_name (event.keyval) == "w") {
 			widget.destroy();
+		}
+
+		return false;
+	}
+
+	private bool search_key_press_event (Gtk.Widget widget, Gdk.EventKey event) {
+		if (Gdk.keyval_name (event.keyval) == "Down" ||
+		    Gdk.keyval_name (event.keyval) == "KP_Down") {
+			var child = ((ScrolledWindow) current_view).get_child ();
+
+			if (child != null) {
+				child.grab_focus();
+			}
 		}
 
 		return false;
@@ -459,9 +474,11 @@ public class Tracker.Needle {
 
 		// Show correct window
 		sw_noresults.hide ();
+		current_view = sw_noresults;
 
 		if (view_icons.active) {
 			sw_icons.show ();
+			current_view = sw_icons;
 
 			if (find_in_all.active) {
 				store = images_model;
@@ -476,6 +493,7 @@ public class Tracker.Needle {
 
 		if (view_categories.active) {
 			sw_categories.show ();
+			current_view = sw_categories;
 			store = categories_model;
 		} else {
 			sw_categories.hide ();
@@ -483,6 +501,7 @@ public class Tracker.Needle {
 
 		if (view_filelist.active) {
 			sw_filelist.show ();
+			current_view = sw_filelist;
 
 			if (find_in_contents.active) {
 				store = files_model;

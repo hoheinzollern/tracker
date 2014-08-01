@@ -61,8 +61,6 @@ main (gint argc, gchar **argv)
 	FILE *f = NULL;
 	FILE *fts = NULL;
 
-	g_type_init ();
-
 	/* Translators: this messagge will apper immediately after the  */
 	/* usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     */
 	context = g_option_context_new ("- Generates HTML doc for a TTL file");
@@ -116,7 +114,10 @@ main (gint argc, gchar **argv)
 	g_option_context_free (context);
 
 	fclose (f);
-	fclose (fts);
+
+	if (fts) {
+		fclose (fts);
+	}
 
 	return 0;
 }

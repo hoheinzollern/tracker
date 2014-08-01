@@ -23,10 +23,6 @@
 #include <stdio.h>
 #include <setjmp.h>
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE /* strcasestr() */
-#endif
-
 #include <jpeglib.h>
 
 #include <libtracker-common/tracker-common.h>
@@ -401,7 +397,7 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	}
 
 	if (xd->identifier) {
-		tracker_sparql_builder_predicate (metadata, "dc:indentifier");
+		tracker_sparql_builder_predicate (metadata, "dc:identifier");
 		tracker_sparql_builder_object_unvalidated (metadata, xd->identifier);
 	}
 

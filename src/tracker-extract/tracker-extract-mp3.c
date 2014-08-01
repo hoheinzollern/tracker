@@ -20,10 +20,6 @@
 
 #include "config.h"
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,11 +36,13 @@
 #include <sys/mman.h>
 #endif /* G_OS_WIN32 */
 
+#ifdef HAVE_LIBMEDIAART
+#include <libmediaart/mediaart.h>
+#endif
+
 #include <libtracker-common/tracker-common.h>
 
 #include <libtracker-extract/tracker-extract.h>
-
-#include "tracker-media-art.h"
 
 #ifdef FRAME_ENABLE_TRACE
 #warning Frame traces enabled
@@ -1292,6 +1290,10 @@ get_id3v24_tags (id3v24frame           frame,
 		word = id3v24_text_to_utf8 (data[pos], &data[pos + 1], csize - 1, info);
 		if (!tracker_is_empty_string (word)) {
 			g_strstrip (word);
+		} else {
+			/* Can't do anything without word. */
+			g_free (word);
+			break;
 		}
 
 #ifdef FRAME_ENABLE_TRACE
@@ -1480,7 +1482,12 @@ get_id3v23_tags (id3v24frame           frame,
 
 		if (!tracker_is_empty_string (word)) {
 			g_strstrip (word);
+		} else {
+			/* Can't do anything without word. */
+			g_free (word);
+			break;
 		}
+
 
 #ifdef FRAME_ENABLE_TRACE
 		g_debug ("ID3v2.3: Frame is %d, word is %s", frame, word);
@@ -1625,6 +1632,9 @@ get_id3v20_tags (id3v2frame            frame,
 		word = id3v2_text_to_utf8 (data[pos], &data[pos + 1], csize - 1, info);
 		if (!tracker_is_empty_string (word)) {
 			g_strstrip (word);
+		} else {
+			/* Can't do anything without word. */
+			return;
 		}
 
 #ifdef FRAME_ENABLE_TRACE
@@ -1764,12 +1774,12 @@ parse_id3v24 (const gchar           *data,
 		}
 	}
 
-	while (pos < size) {
+	while (pos < tsize) {
 		id3v24frame frame;
 		size_t csize;
 		unsigned short flags;
 
-		if (pos + 10 > size) {
+		if (pos + 10 > tsize) {
 			return;
 		}
 
@@ -1892,12 +1902,12 @@ parse_id3v23 (const gchar          *data,
 		}
 	}
 
-	while (pos < size) {
+	while (pos < tsize) {
 		id3v24frame frame;
 		size_t csize;
 		unsigned short flags;
 
-		if (pos + 10 > size) {
+		if (pos + 10 > tsize) {
 			return;
 		}
 
@@ -1919,7 +1929,7 @@ parse_id3v23 (const gchar          *data,
 			continue;
 		}
 
-		if (pos + csize > size) {
+		if (pos + csize > tsize) {
 			break;
 		} else if (csize == 0) {
 			continue;
@@ -2093,25 +2103,11 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	md.size = size;
 	buffer_size = MIN (size, MAX_FILE_READ);
 
-#if defined(__linux__)
-	/* Can return -1 because of O_NOATIME, so we try again after
-	 * without as a last resort. This can happen due to
-	 * permissions.
-	 */
-	fd = g_open (filename, O_RDONLY | O_NOATIME);
-	if (fd == -1 && errno == EPERM) {
-		fd = g_open (filename, O_RDONLY);
+	fd = tracker_file_open_fd (filename);
 
-		if (fd == -1) {
-			return FALSE;
-		}
-	}
-#else
-	fd = open (filename, O_RDONLY);
 	if (fd == -1) {
 		return FALSE;
 	}
-#endif
 
 #ifndef G_OS_WIN32
 	/* We don't use GLib's mmap because size can not be specified */
@@ -2141,21 +2137,6 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	}
 
 	g_free (id3v1_buffer);
-
-	if (md.id3v1.encoding != NULL) {
-		gchar *locale;
-
-		locale = tracker_locale_get (TRACKER_LOCALE_LANGUAGE);
-		if (!g_str_has_prefix (locale, "ru") &&
-		    !g_str_has_prefix (locale, "uk")) {
-			/* use guessed encoding for ID3v2 tags only in selected locales
-			   where broken ID3v2 is widespread */
-			g_free (md.id3v1.encoding);
-			md.id3v1.encoding = NULL;
-		}
-		g_free (locale);
-		locale = NULL;
-	}
 
 	/* Get other embedded tags */
 	uri = g_file_get_uri (file);
@@ -2504,13 +2485,43 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	/* Get mp3 stream info */
 	mp3_parse (buffer, buffer_size, audio_offset, uri, metadata, &md);
 
-	tracker_media_art_process (md.media_art_data,
-	                           md.media_art_size,
-	                           md.media_art_mime,
-	                           TRACKER_MEDIA_ART_ALBUM,
-	                           md.performer,
-	                           md.album,
-	                           uri);
+#ifdef HAVE_LIBMEDIAART
+	if (md.performer || md.title) {
+		MediaArtProcess *media_art_process;
+		GError *error = NULL;
+		gboolean success = TRUE;
+
+		media_art_process = tracker_extract_info_get_media_art_process (info);
+
+		if (md.media_art_data) {
+			success = media_art_process_buffer (media_art_process,
+			                                    MEDIA_ART_ALBUM,
+			                                    MEDIA_ART_PROCESS_FLAGS_NONE,
+			                                    file,
+			                                    md.media_art_data,
+			                                    md.media_art_size,
+			                                    md.media_art_mime,
+			                                    md.performer,
+			                                    md.title,
+			                                    &error);
+		} else {
+			success = media_art_process_file (media_art_process,
+			                                  MEDIA_ART_ALBUM,
+			                                  MEDIA_ART_PROCESS_FLAGS_NONE,
+			                                  file,
+			                                  md.performer,
+			                                  md.title,
+			                                  &error);
+		}
+
+		if (!success || error) {
+			g_warning ("Could not process media art for '%s', %s",
+			           uri,
+			           error ? error->message : "No error given");
+			g_clear_error (&error);
+		}
+	}
+#endif
 	g_free (md.media_art_data);
 	g_free (md.media_art_mime);
 

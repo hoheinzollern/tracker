@@ -23,6 +23,18 @@
 #include <gio/gunixinputstream.h>
 #include <gio/gunixoutputstream.h>
 
+#ifdef __OpenBSD__
+#include <sys/param.h>
+#include <sys/proc.h>
+#include <sys/sysctl.h>
+#include <fcntl.h>
+#include <kvm.h>
+#endif
+
+#ifdef __sun
+#include <procfs.h>
+#endif
+
 #include "tracker-dbus.h"
 #include "tracker-log.h"
 
@@ -51,11 +63,24 @@ static GDBusConnection *connection;
 static void     client_data_free    (gpointer data);
 static gboolean client_clean_up_cb (gpointer data);
 
+inline GBusType
+tracker_ipc_bus (void)
+{
+	const gchar *bus = g_getenv ("TRACKER_BUS_TYPE");
+
+	if (G_UNLIKELY (bus != NULL &&
+	                g_ascii_strcasecmp (bus, "system") == 0)) {
+		return G_BUS_TYPE_SYSTEM;
+	}
+
+	return G_BUS_TYPE_SESSION;
+}
+
 static gboolean
 clients_init (void)
 {
 	GError *error = NULL;
-	connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &error);
+	connection = g_bus_get_sync (TRACKER_IPC_BUS, NULL, &error);
 
 	if (error) {
 		g_critical ("Could not connect to the D-Bus session bus, %s",
@@ -139,17 +164,25 @@ client_data_new (gchar *sender)
 	}
 
 	if (get_binary) {
+#ifndef __OpenBSD__
 		gchar *filename;
 		gchar *pid_str;
 		gchar *contents = NULL;
 		GError *error = NULL;
 		gchar **strv;
+#ifdef __sun /* Solaris */
+		psinfo_t psinfo = { 0 };
+#endif
 
 		pid_str = g_strdup_printf ("%ld", cd->pid);
 		filename = g_build_filename (G_DIR_SEPARATOR_S,
 		                             "proc",
 		                             pid_str,
+#ifdef __sun /* Solaris */
+		                             "psinfo",
+#else
 		                             "cmdline",
+#endif
 		                             NULL);
 		g_free (pid_str);
 
@@ -164,13 +197,49 @@ client_data_new (gchar *sender)
 
 		g_free (filename);
 
+#ifdef __sun /* Solaris */
+		memcpy (&psinfo, contents, sizeof (psinfo));
+		/* won't work with paths containing spaces :( */
+		strv = g_strsplit (psinfo.pr_psargs, " ", 2);
+#else
 		strv = g_strsplit (contents, "^@", 2);
+#endif
 		if (strv && strv[0]) {
 			cd->binary = g_path_get_basename (strv[0]);
 		}
 
 		g_strfreev (strv);
 		g_free (contents);
+#else
+		gint nproc;
+		struct kinfo_proc *kp;
+		kvm_t *kd;
+		gchar **strv;
+
+		if ((kd = kvm_openfiles (NULL, NULL, NULL, KVM_NO_FILES, NULL)) == NULL)
+			return cd;
+
+		if ((kp = kvm_getprocs (kd, KERN_PROC_PID, cd->pid, sizeof (*kp), &nproc)) == NULL) {
+			g_warning ("Could not get process name: %s", kvm_geterr (kd));
+			kvm_close(kd);
+			return cd;
+		}
+
+		if ((kp->p_flag & P_SYSTEM) != 0) {
+			kvm_close(kd);
+			return cd;
+		}
+
+		strv = kvm_getargv (kd, kp, 0);
+
+		if (strv == NULL) {
+			kvm_close(kd);
+			return cd;
+		} else {
+			cd->binary = g_path_get_basename (strv[0]);
+			kvm_close(kd);
+		}
+#endif
 	}
 
 	return cd;

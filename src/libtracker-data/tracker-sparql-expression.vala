@@ -26,6 +26,8 @@ class Tracker.Sparql.Expression : Object {
 	const string FTS_NS = "http://www.tracker-project.org/ontologies/fts#";
 	const string TRACKER_NS = "http://www.tracker-project.org/ontologies/tracker#";
 
+	string? fts_sql;
+
 	public Expression (Query query) {
 		this.query = query;
 	}
@@ -124,6 +126,7 @@ class Tracker.Sparql.Expression : Object {
 	internal PropertyType translate_select_expression (StringBuilder sql, bool subquery, int variable_index) throws Sparql.Error {
 		Variable variable = null;
 		bool expect_close_parens = false;
+		bool as_handled = false;
 
 		long begin = sql.len;
 		var type = PropertyType.UNKNOWN;
@@ -178,6 +181,7 @@ class Tracker.Sparql.Expression : Object {
 				variable = context.get_variable (get_last_string ().substring (1));
 			}
 			sql.append_printf (" AS %s", variable.sql_expression);
+			as_handled = true;
 
 			if (subquery) {
 				var binding = new VariableBinding ();
@@ -185,6 +189,25 @@ class Tracker.Sparql.Expression : Object {
 				binding.variable = variable;
 				binding.sql_expression = variable.sql_expression;
 				pattern.add_variable_binding (new StringBuilder (), binding, VariableState.BOUND);
+			}
+		}
+
+		if (pattern.fts_subject != null) {
+			if (variable == null) {
+				// FTS matches still need aliases as the outer MATCH query
+				// will fetch futher values from the joined select
+				variable = context.get_variable ("var%d".printf (variable_index + 1));
+			}
+
+			if (fts_sql == null) {
+				pattern.fts_variables += variable.sql_expression;
+
+				if (as_handled == false) {
+					sql.append_printf (" AS %s", variable.sql_expression);
+				}
+			} else {
+				pattern.fts_variables += fts_sql;
+				pattern.queries_fts_data = true;
 			}
 		}
 
@@ -203,6 +226,8 @@ class Tracker.Sparql.Expression : Object {
 		} else {
 			((SelectContext) context).variable_names += "var%d".printf (variable_index + 1);
 		}
+
+		fts_sql = null;
 
 		return type;
 	}
@@ -462,6 +487,21 @@ class Tracker.Sparql.Expression : Object {
 			translate_expression_as_string (sql);
 			sql.append (")");
 			return PropertyType.STRING;
+		} else if (uri == TRACKER_NS + "normalize") {
+			// conversion to string
+			sql.append ("SparqlNormalize (");
+			translate_expression_as_string (sql);
+			sql.append (", ");
+			expect (SparqlTokenType.COMMA);
+			translate_expression_as_string (sql);
+			sql.append (")");
+			return PropertyType.STRING;
+		} else if (uri == TRACKER_NS + "unaccent") {
+			// conversion to string
+			sql.append ("SparqlUnaccent (");
+			translate_expression_as_string (sql);
+			sql.append (")");
+			return PropertyType.STRING;
 		} else if (uri == FN_NS + "contains") {
 			// fn:contains('A','B') => 'A' GLOB '*B*'
 			sql.append ("(");
@@ -647,8 +687,56 @@ class Tracker.Sparql.Expression : Object {
 		} else if (uri == FTS_NS + "offsets") {
 			bool is_var;
 			string v = pattern.parse_var_or_term (null, out is_var);
-			sql.append_printf ("\"%s_u_offsets\"", v);
+			var variable = context.get_variable (v);
 
+			sql.append (variable.sql_expression);
+			fts_sql = "tracker_offsets(offsets(\"fts\"),fts_property_names())";
+			return PropertyType.STRING;
+		} else if (uri == FTS_NS + "snippet") {
+			bool is_var;
+
+			string v = pattern.parse_var_or_term (null, out is_var);
+			var variable = context.get_variable (v);
+			var fts = new StringBuilder ();
+
+			fts.append_printf ("snippet(\"fts\"");
+
+			// "start match" text
+			if (accept (SparqlTokenType.COMMA)) {
+				fts.append (", ");
+				translate_expression_as_string (fts);
+
+				// "end match" text
+				expect (SparqlTokenType.COMMA);
+				fts.append (", ");
+				translate_expression_as_string (fts);
+			} else {
+				fts.append(",'',''");
+			}
+
+			// "ellipsis" text
+			if (accept (SparqlTokenType.COMMA)) {
+				fts.append (", ");
+				translate_expression_as_string (fts);
+			} else {
+				fts.append (", '...'");
+			}
+
+			// lookup column
+			fts.append (", -1");
+
+			// Approximate number of words in context
+			if (accept (SparqlTokenType.COMMA)) {
+				fts.append (", ");
+				translate_expression_as_string (fts);
+			} else {
+				fts.append (", 5");
+			}
+
+			fts.append (")");
+
+			fts_sql = fts.str;
+			sql.append (variable.sql_expression);
 			return PropertyType.STRING;
 		} else if (uri == TRACKER_NS + "id") {
 			var type = translate_expression (sql);

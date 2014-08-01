@@ -1,11 +1,17 @@
-include $(top_srcdir)/Makefile.decl
+SUBDIRS =
 
-SUBDIRS = fs
+if HAVE_TRACKER_MINER_FS
+SUBDIRS += fs
+endif
+
+if HAVE_TRACKER_MINER_APPS
+SUBDIRS += apps
+endif
 
 if HAVE_TRACKER_MINER_RSS
 SUBDIRS += rss
 endif
 
-if HAVE_TRACKER_MINER_FLICKR
-SUBDIRS += flickr
+if HAVE_TRACKER_MINER_USER_GUIDES
+SUBDIRS += user-guides
 endif

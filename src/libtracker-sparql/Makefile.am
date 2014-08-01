@@ -1,5 +1,3 @@
-include $(top_srcdir)/Makefile.decl
-
 noinst_LTLIBRARIES = libtracker-sparql.la
 
 libtracker_sparql_la_VALAFLAGS =                       \
@@ -12,7 +10,7 @@ libtracker_sparql_la_VALAFLAGS =                       \
 	$(BUILD_VALAFLAGS)
 
 AM_CPPFLAGS =                                          \
-	$(BUILD_CFLAGS)                                \
+	$(BUILD_VALACFLAGS)                            \
 	-I$(top_srcdir)/src                            \
 	-I$(top_builddir)/src                          \
 	$(LIBTRACKER_SPARQL_CFLAGS)

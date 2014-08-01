@@ -26,6 +26,11 @@
 #include <unistd.h>
 #include <sys/resource.h>
 
+#if defined (__OpenBSD__)
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#endif
+
 #include <glib.h>
 
 #include "tracker-log.h"
@@ -222,13 +227,29 @@ tracker_create_permission_string (struct stat finfo)
 
 #ifndef DISABLE_MEM_LIMITS
 
-static guint
+static guint64
 get_memory_total (void)
 {
+#if defined (__OpenBSD__)
+	guint64 total = 0;
+	int64_t physmem;
+	size_t len;
+	static gint mib[] = { CTL_HW, HW_PHYSMEM64 };
+
+	len = sizeof (physmem);
+
+	if (sysctl (mib, G_N_ELEMENTS (mib), &physmem, &len, NULL, 0) == -1) {
+		g_critical ("Couldn't get memory information: %d", errno);
+	} else {
+		total = physmem;
+	}
+#elif defined (__sun)
+	guint64 total = (guint64)sysconf(_SC_PAGESIZE) * (guint64)sysconf(_SC_PHYS_PAGES);
+#else
 	GError      *error = NULL;
 	const gchar *filename;
 	gchar       *contents = NULL;
-	glong        total = 0;
+	guint64      total = 0;
 
 	filename = "/proc/meminfo";
 
@@ -253,16 +274,12 @@ get_memory_total (void)
 
 			if (end) {
 				*end = '\0';
-				total = 1024 * atol (p);
+				total = 1024L * (guint64)g_ascii_strtoll (p, NULL, 10);
 			}
 		}
 		g_free (contents);
 	}
-
-	if (!total) {
-		/* Setting limit to an arbitary limit */
-		total = RLIM_INFINITY;
-	}
+#endif
 
 	return total;
 }
@@ -274,14 +291,20 @@ tracker_memory_setrlimits (void)
 {
 #ifndef DISABLE_MEM_LIMITS
 	struct rlimit rl = { 0 };
-	glong total;
-	glong total_halfed;
-	glong limit;
+	guint64 total;
+	guint64 total_halfed;
+	guint64 limit;
 
 	total = get_memory_total ();
+
+	if (!total) {
+		/* total amount of memory unknown */
+		return FALSE;
+	}
+
 	total_halfed = total / 2;
 
-	/* Clamp memory between 50% of total and MAXLONG (2Gb) */
+	/* Clamp memory between 50% of total and MAXLONG (2GB on 32-bit) */
 	limit = CLAMP (total_halfed, MEM_LIMIT_MIN, G_MAXLONG);
 
 	/* We want to limit the max virtual memory
@@ -312,13 +335,8 @@ tracker_memory_setrlimits (void)
 		} else {
 			gchar *str1, *str2;
 
-#if GLIB_CHECK_VERSION (2,30,0)
 			str1 = g_format_size (total);
 			str2 = g_format_size (limit);
-#else
-			str1 = g_format_size_for_display (total);
-			str2 = g_format_size_for_display (limit);
-#endif
 
 			g_message ("Setting memory limitations: total is %s, minimum is 256 MB, recommended is ~1 GB", str1);
 			g_message ("  Virtual/Heap set to %s (50%% of total or MAXLONG)", str2);
@@ -331,3 +349,12 @@ tracker_memory_setrlimits (void)
 
 	return TRUE;
 }
+
+#ifndef HAVE_STRNLEN
+size_t
+strnlen (const char *str, size_t max)
+{
+	const char *end = memchr (str, 0, max);
+	return end ? (size_t)(end - str) : max;
+}
+#endif /* HAVE_STRNLEN */

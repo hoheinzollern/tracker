@@ -38,12 +38,8 @@ static gboolean  initialized;
 static FILE     *fd;
 static gint      verbosity;
 static guint     log_handler_id;
-
-#if GLIB_CHECK_VERSION (2,31,0)
+static gboolean  use_log_files;
 static GMutex    mutex;
-#else
-static GMutex   *mutex;
-#endif
 
 static inline void
 log_output (const gchar    *domain,
@@ -61,11 +57,7 @@ log_output (const gchar    *domain,
 	g_return_if_fail (message != NULL && message[0] != '\0');
 
 	/* Ensure file logging is thread safe */
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_lock (&mutex);
-#else
-	g_mutex_lock (mutex);
-#endif
 
 	/* Check log size, 10MiB limit */
 	if (size > (10 << 20) && fd) {
@@ -113,8 +105,18 @@ log_output (const gchar    *domain,
 	                          message);
 
 	if (G_UNLIKELY (fd == NULL)) {
-		g_fprintf (stderr, "%s\n", output);
-		fflush (stderr);
+		FILE *f;
+
+		if (log_level == G_LOG_LEVEL_WARNING ||
+		    log_level == G_LOG_LEVEL_CRITICAL ||
+		    log_level == G_LOG_LEVEL_ERROR) {
+			f = stderr;
+		} else {
+			f = stdout;
+		}
+
+		g_fprintf (f, "%s\n", output);
+		fflush (f);
 	} else {
 		size += g_fprintf (fd, "%s\n", output);
 		fflush (fd);
@@ -122,11 +124,7 @@ log_output (const gchar    *domain,
 
 	g_free (output);
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_unlock (&mutex);
-#else
-	g_mutex_unlock (mutex);
-#endif
 }
 
 static void
@@ -135,7 +133,10 @@ tracker_log_handler (const gchar    *domain,
                      const gchar    *message,
                      gpointer        user_data)
 {
-	log_output (domain, log_level, message);
+	/* Unless enabled, we don't log to file by default */
+	if (use_log_files) {
+		log_output (domain, log_level, message);
+	}
 
 	/* Now show the message through stdout/stderr as usual */
 	g_log_default_handler (domain, log_level, message, user_data);
@@ -154,13 +155,25 @@ gboolean
 tracker_log_init (gint    this_verbosity,
                   gchar **used_filename)
 {
-	gchar *filename;
-	gchar *basename;
+	const gchar *env_use_log_files;
 	const gchar *env_verbosity;
 	GLogLevelFlags hide_levels = 0;
 
 	if (initialized) {
 		return TRUE;
+	}
+
+	env_use_log_files = g_getenv ("TRACKER_USE_LOG_FILES");
+	if (env_use_log_files != NULL) {
+		/* When set we use:
+		 *   ~/.local/share/Tracker/
+		 * Otherwise, we either of the following:
+		 *   ~/.xsession-errors
+		 *   ~/.cache/gdm/session.log
+		 *   systemd journal
+		 * Depending on the system.
+		 */
+		use_log_files = TRUE;
 	}
 
 	env_verbosity = g_getenv ("TRACKER_VERBOSITY");
@@ -176,34 +189,52 @@ tracker_log_init (gint    this_verbosity,
 		g_free (verbosity_string);
 	}
 
-	basename = g_strdup_printf ("%s.log", g_get_application_name ());
-	filename = g_build_filename (g_get_user_data_dir (),
-	                             "tracker",
-	                             basename,
-	                             NULL);
-	g_free (basename);
+	/* If we have debug enabled, we imply G_MESSAGES_DEBUG or we
+	 * see nothing, this came in since GLib 2.32.
+	 */
+	if (this_verbosity > 2) {
+		g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
+	}
 
-	/* Open file */
-	fd = g_fopen (filename, "a");
-	if (!fd) {
-		const gchar *error_string;
+	if (use_log_files) {
+		gchar *basename;
+		gchar *filename;
 
-		error_string = g_strerror (errno);
-		g_fprintf (stderr,
-		           "Could not open log:'%s', %s\n",
-		           filename,
-		           error_string);
-		g_fprintf (stderr,
-		           "All logging will go to stderr\n");
+		basename = g_strdup_printf ("%s.log", g_get_application_name ());
+		filename = g_build_filename (g_get_user_data_dir (),
+		                             "tracker",
+		                             basename,
+		                             NULL);
+		g_free (basename);
+
+		/* Open file */
+		fd = g_fopen (filename, "a");
+		if (!fd) {
+			const gchar *error_string;
+
+			error_string = g_strerror (errno);
+			g_fprintf (stderr,
+			           "Could not open log:'%s', %s\n",
+			           filename,
+			           error_string);
+			g_fprintf (stderr,
+			           "All logging will go to stderr\n");
+
+			use_log_files = TRUE;
+		}
+
+		if (used_filename) {
+			*used_filename = filename;
+		} else {
+			g_free (filename);
+		}
+	} else {
+		*used_filename = NULL;
 	}
 
 	verbosity = CLAMP (this_verbosity, 0, 3);
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_init (&mutex);
-#else
-	mutex = g_mutex_new ();
-#endif
 
 	switch (this_verbosity) {
 		/* Log level 3: EVERYTHING */
@@ -241,16 +272,10 @@ tracker_log_init (gint    this_verbosity,
 	/* Set log handler function for the rest */
 	g_log_set_default_handler (tracker_log_handler, NULL);
 
-	if (used_filename) {
-		*used_filename = filename;
-	} else {
-		g_free (filename);
-	}
-
 	initialized = TRUE;
 
 	/* log binary name and version */
-	g_message ("%s %s", g_get_application_name (), PACKAGE_VERSION);
+	g_message ("Starting %s %s", g_get_application_name (), PACKAGE_VERSION);
 
 	return TRUE;
 }
@@ -262,6 +287,8 @@ tracker_log_shutdown (void)
 		return;
 	}
 
+	g_message ("Stopping %s %s", g_get_application_name (), PACKAGE_VERSION);
+
 	/* Reset default log handler */
 	g_log_set_default_handler (g_log_default_handler, NULL);
 
@@ -270,15 +297,11 @@ tracker_log_shutdown (void)
 		log_handler_id = 0;
 	}
 
-	if (fd) {
+	if (use_log_files && fd != NULL) {
 		fclose (fd);
 	}
 
-#if GLIB_CHECK_VERSION (2,31,0)
 	g_mutex_clear (&mutex);
-#else
-	g_mutex_free (mutex);
-#endif
 
 	initialized = FALSE;
 }

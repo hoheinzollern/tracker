@@ -58,7 +58,7 @@ public class Tracker.View : ScrolledWindow {
 	}
 
 	private Widget view = null;
-	private Menu context_menu;
+	private Gtk.Menu context_menu;
 
 	private void store_row_changed (TreeModel model,
 	                                TreePath  path,
@@ -130,7 +130,7 @@ public class Tracker.View : ScrolledWindow {
 		}
 
 		if (display == Display.NO_RESULTS) {
-			add_with_viewport (view);
+			add (view);
 		} else {
 			add (view);
 			setup_model ();
@@ -362,10 +362,11 @@ public class Tracker.View : ScrolledWindow {
 				markup = Markup.escape_text (text);
 
 				if (subtext != null) {
+					subtext = subtext.replace ("\n", " ");
 					markup += "\n<small><span color='grey'>%s</span></small>".printf (Markup.escape_text (subtext));
 				}
 			} else {
-				markup = "<span color='grey'>%s</span>\n".printf (_("Loading..."));
+				markup = "<span color='grey'>%s</span>\n".printf (_("Loading…"));
 			}
 		}
 
@@ -382,7 +383,7 @@ public class Tracker.View : ScrolledWindow {
 		tree_model.get (iter, 4, out size, -1);
 
 		if (size != null) {
-			size = GLib.format_size_for_display (int.parse (size));
+			size = GLib.format_size (int.parse (size));
 		}
 
 		cell.set ("text", size);
@@ -431,10 +432,10 @@ public class Tracker.View : ScrolledWindow {
 			detail = tracker_time_format_from_seconds (detail);
 			break;
 		case Tracker.Query.Type.DOCUMENTS:
-			detail = detail + " " + _("Pages");
+			detail = ngettext ("%d Page", "%d Pages", int.parse (detail)).printf (int.parse (detail));
 			break;
 		case Tracker.Query.Type.IMAGES:
-			detail = GLib.format_size_for_display (int.parse (detail));
+			detail = GLib.format_size (int.parse (detail));
 			break;
 		}
 
@@ -446,16 +447,16 @@ public class Tracker.View : ScrolledWindow {
 		// Set up context menu
 		view.button_press_event.connect (view_button_press_event);
 
-		context_menu = new Menu ();
+		context_menu = new Gtk.Menu ();
 
-		var item = new MenuItem.with_mnemonic (_("_Show Parent Directory"));
+		var item = new Gtk.MenuItem.with_mnemonic (_("_Show Parent Directory"));
 		item.activate.connect (context_menu_directory_clicked);
 		context_menu.append (item);
 
 		var separator = new SeparatorMenuItem ();
 		context_menu.append (separator);
 
-		item = new MenuItem.with_mnemonic (_("_Tags..."));
+		item = new Gtk.MenuItem.with_mnemonic (_("_Tags…"));
 		item.activate.connect (context_menu_tags_clicked);
 		context_menu.append (item);
 
@@ -548,7 +549,7 @@ public class Tracker.View : ScrolledWindow {
 
 		List<string> files = null;
 		files.prepend (uri);
-		VBox vbox = new TrackerTagsView (files);
+		VBox vbox = new TrackerTagsView ((owned) files);
 
 		var content = dialog.get_content_area () as Box;
 		content.pack_start (vbox, true, true, 6);

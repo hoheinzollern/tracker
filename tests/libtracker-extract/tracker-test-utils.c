@@ -29,6 +29,24 @@
 #include <libtracker-extract/tracker-extract.h>
 
 static void
+test_guess_date_failures_subprocess ()
+{
+	gchar *result;
+
+	result = tracker_date_guess (NULL);
+	g_free (result);
+}
+
+static void
+test_guess_date_failures ()
+{
+	g_test_trap_subprocess ("/libtracker-extract/tracker-utils/guess_date_failures/subprocess", 0, G_TEST_SUBPROCESS_INHERIT_STDERR);
+	g_test_trap_assert_passed ();
+
+	/* Should be NO output when using NULL with tracker_date_guess() */
+}
+
+static void
 test_guess_date (void)
 {
 	gchar *result;
@@ -83,13 +101,6 @@ test_guess_date (void)
         result = tracker_date_guess ("2010-03-18T01:02:03.100");
         g_assert_cmpstr (result, ==, "2010-03-18T01:02:03.100");
         g_free (result);
-
-	if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
-		result = tracker_date_guess (NULL);
-		g_free (result);
-	}
-
-	g_test_trap_assert_failed ();
 }
 
 static void
@@ -213,7 +224,13 @@ test_coalesce_strip ()
 {
         /* Used in other tests, but this one can try some corner cases */
         g_assert (!tracker_coalesce_strip (0, NULL));
-        g_assert_cmpstr (tracker_coalesce_strip (2, "", "a", NULL), ==, "a");
+
+        /* Allocate, do not use constant strings */
+        char *e = g_strdup ("");
+        char *a = g_strdup ("a");
+        g_assert_cmpstr (tracker_coalesce_strip (2, e, a, NULL), ==, "a");
+        g_free (e);
+        g_free (a);
 }
 
 static void
@@ -264,11 +281,14 @@ main (int argc, char **argv)
 {
 	gint result;
 
-	g_type_init ();
 	g_test_init (&argc, &argv, NULL);
 
 	g_test_add_func ("/libtracker-extract/tracker-utils/guess_date",
 	                 test_guess_date);
+	g_test_add_func ("/libtracker-extract/tracker-utils/guess_date_failures",
+	                 test_guess_date_failures);
+	g_test_add_func ("/libtracker-extract/tracker-utils/guess_date_failures/subprocess",
+	                 test_guess_date_failures_subprocess);
         g_test_add_func ("/libtracker-extract/tracker-utils/text-validate-utf8",
                          test_text_validate_utf8);
         g_test_add_func ("/libtracker-extract/tracker-utils/date_to_iso8601",

@@ -19,6 +19,10 @@
 
 #include "config.h"
 
+#include <locale.h>
+
+#include <glib-object.h>
+
 #include <libtracker-sparql/tracker-sparql.h>
 
 typedef struct {
@@ -167,11 +171,6 @@ test_tracker_sparql_cursor_next_async_cb (GObject      *source,
 			g_main_loop_quit (main_loop);
 		}
 	} else {
-		tracker_sparql_cursor_next_async (cursor,
-		                                  cancellables[query],
-		                                  test_tracker_sparql_cursor_next_async_cb,
-		                                  user_data);
-
 		next++;
 
 		/* Random number here for next_count_to_cancel is "2",
@@ -184,6 +183,11 @@ test_tracker_sparql_cursor_next_async_cb (GObject      *source,
 			         next);
 			g_cancellable_cancel (cancellables[query]);
 		}
+
+		tracker_sparql_cursor_next_async (cursor,
+		                                  cancellables[query],
+		                                  test_tracker_sparql_cursor_next_async_cb,
+		                                  user_data);
 	}
 }
 
@@ -293,31 +297,64 @@ test_tracker_sparql_nb237150_cb (GObject      *source_object,
                                  GAsyncResult *result,
                                  gpointer      user_data)
 {
+	TrackerSparqlConnection *connection;
+	GError *error = NULL;
+	static gboolean had_1 = FALSE;
+	static gboolean had_2 = FALSE;
+
+	connection = tracker_sparql_connection_get_finish (result, &error);
+	g_assert_no_error (error);
+	g_assert (connection != NULL);
+
 	/* Not actually worried about this being called */
 	g_print ("Called back for #%d\n", GPOINTER_TO_INT(user_data));
+
+	if (GPOINTER_TO_INT(user_data) == 1)
+		had_1 = TRUE;
+	if (GPOINTER_TO_INT(user_data) == 2)
+		had_2 = TRUE;
+
+	if (had_1 && had_2) {
+		g_print ("Called back ALL\n");
+		g_main_loop_quit (main_loop);
+	}
+}
+
+static void
+test_tracker_sparql_nb237150_subprocess (void)
+{
+	g_print ("\n");
+	g_print ("Calling #1 - tracker_sparql_connection_get_async()\n");
+	tracker_sparql_connection_get_async (NULL, test_tracker_sparql_nb237150_cb, GINT_TO_POINTER(1));
+
+	g_print ("Calling #2 - tracker_sparql_connection_get_async()\n");
+	tracker_sparql_connection_get_async (NULL, test_tracker_sparql_nb237150_cb, GINT_TO_POINTER(2));
+
+	g_print ("Calling both finished\n");
 }
 
 static void
 test_tracker_sparql_nb237150 (void)
 {
-	/* Test NB#237150 - Second tracker_sparql_connection_get_async never returns */
-	if (g_test_trap_fork (G_USEC_PER_SEC * 2, G_TEST_TRAP_SILENCE_STDOUT)) {
-		g_print ("\n");
-		g_print ("Calling #1 - tracker_sparql_connection_get_async()\n");
-		tracker_sparql_connection_get_async (NULL, test_tracker_sparql_nb237150_cb, GINT_TO_POINTER(1));
-
-		g_print ("Calling #2 - tracker_sparql_connection_get_async()\n");
-		tracker_sparql_connection_get_async (NULL, test_tracker_sparql_nb237150_cb, GINT_TO_POINTER(2));
-
-		g_print ("Calling both finished\n");
-
-		exit (0); /* successful test run */
-	}
+	/* Test NB#237150 - Second tracker_sparql_connection_get_async
+	 * never returns
+	 */
+	g_test_trap_subprocess ("/libtracker-sparql/tracker/nb237150/subprocess",
+	                        G_USEC_PER_SEC * 2,
+	                        G_TEST_SUBPROCESS_INHERIT_STDOUT);
 
 	g_test_trap_assert_passed ();
+
+	/* Check we called the functions in the test */
 	g_test_trap_assert_stdout ("*Calling #1*");
 	g_test_trap_assert_stdout ("*Calling #2*");
 	g_test_trap_assert_stdout ("*Calling both finished*");
+
+	/* Check the callbacks from the functions we called were
+	 * called in the test */
+	g_test_trap_assert_stdout ("*Called back for #1*");
+	g_test_trap_assert_stdout ("*Called back for #2*");
+	g_test_trap_assert_stdout ("*Called back ALL*");
 }
 
 static void
@@ -357,7 +394,8 @@ main (gint argc, gchar **argv)
 {
 	int result;
 
-	g_type_init ();
+	setlocale (LC_ALL, "");
+
 	g_test_init (&argc, &argv, NULL);
 
 #if HAVE_TRACKER_FTS
@@ -368,9 +406,11 @@ main (gint argc, gchar **argv)
 	/* NOTE: this first test must come BEFORE any others because
 	 * connections are cached by libtracker-sparql.
 	 */
-	g_test_add_func ("/libtracker-sparql/tracker/test_tracker_sparql_nb237150",
+	g_test_add_func ("/libtracker-sparql/tracker/nb237150",
 	                 test_tracker_sparql_nb237150);
-	g_test_add_func ("/libtracker-sparql/tracker/tracker_sparql_escape_string", 
+	g_test_add_func ("/libtracker-sparql/tracker/nb237150/subprocess",
+	                 test_tracker_sparql_nb237150_subprocess);
+	g_test_add_func ("/libtracker-sparql/tracker/tracker_sparql_escape_string",
 	                 test_tracker_sparql_escape_string);
 	g_test_add_func ("/libtracker-sparql/tracker/tracker_sparql_escape_uri_vprintf",
 	                 test_tracker_sparql_escape_uri_vprintf);

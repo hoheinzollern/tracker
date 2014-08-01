@@ -26,7 +26,6 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-crawler.h"
-#include "tracker-marshal.h"
 #include "tracker-miner-fs.h"
 #include "tracker-media-art.h"
 #include "tracker-monitor.h"
@@ -89,6 +88,11 @@ static gboolean miner_fs_queues_status_trace_timeout_cb (gpointer data);
 #define trace_eq_pop_head_2(...)
 #endif /* EVENT_QUEUE_ENABLE_TRACE */
 
+/* Number of times a GFile can be re-queued before it's dropped for
+ * whatever reason to avoid infinite loops.
+*/
+#define REENTRY_MAX 2
+
 /* Default processing pool limits to be set */
 #define DEFAULT_WAIT_POOL_LIMIT 1
 #define DEFAULT_READY_POOL_LIMIT 1
@@ -140,6 +144,7 @@ typedef struct {
 	GString   *sparql;
 	const gchar *source_uri;
 	const gchar *uri;
+	TrackerMiner *miner;
 } RecursiveMoveData;
 
 struct _TrackerMinerFSPrivate {
@@ -160,11 +165,13 @@ struct _TrackerMinerFSPrivate {
 	GQuark          quark_ignore_file;
 	GQuark          quark_attribute_updated;
 	GQuark          quark_directory_found_crawling;
+	GQuark          quark_reentry_counter;
 
 	GTimer         *timer;
 	GTimer         *extraction_timer;
 
 	guint           item_queues_handler_id;
+	GFile          *item_queue_blocker;
 
 	gdouble         throttle;
 
@@ -180,6 +187,8 @@ struct _TrackerMinerFSPrivate {
 
 	TrackerIndexingTree *indexing_tree;
 
+	TrackerThumbnailer *thumbnailer;
+
 	/* Status */
 	guint           been_started : 1;     /* TRUE if miner has been started */
 	guint           been_crawled : 1;     /* TRUE if initial crawling has been
@@ -190,6 +199,7 @@ struct _TrackerMinerFSPrivate {
 	                                       * during initial crawling. */
 	guint           initial_crawling : 1; /* TRUE if initial crawling should be
 	                                       * done */
+	guint           timer_stopped : 1;    /* TRUE if main timer is stopped */
 	guint           extraction_timer_stopped : 1; /* TRUE if the extraction
 						       * timer is stopped */
 
@@ -302,6 +312,7 @@ static void           task_pool_limit_reached_notify_cb       (GObject        *o
                                                                GParamSpec     *pspec,
                                                                gpointer        user_data);
 
+static GQuark quark_file_iri = 0;
 static GInitableIface* miner_fs_initable_parent_iface;
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -394,7 +405,7 @@ tracker_miner_fs_class_init (TrackerMinerFSClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              G_STRUCT_OFFSET (TrackerMinerFSClass, process_file),
 		              NULL, NULL,
-		              tracker_marshal_BOOLEAN__OBJECT_OBJECT_OBJECT,
+		              NULL,
 		              G_TYPE_BOOLEAN,
 		              3, G_TYPE_FILE, TRACKER_SPARQL_TYPE_BUILDER, G_TYPE_CANCELLABLE);
 
@@ -430,7 +441,7 @@ tracker_miner_fs_class_init (TrackerMinerFSClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              G_STRUCT_OFFSET (TrackerMinerFSClass, process_file_attributes),
 		              NULL, NULL,
-		              tracker_marshal_BOOLEAN__OBJECT_OBJECT_OBJECT,
+		              NULL,
 		              G_TYPE_BOOLEAN,
 		              3, G_TYPE_FILE, TRACKER_SPARQL_TYPE_BUILDER, G_TYPE_CANCELLABLE);
 
@@ -460,7 +471,7 @@ tracker_miner_fs_class_init (TrackerMinerFSClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              G_STRUCT_OFFSET (TrackerMinerFSClass, ignore_next_update_file),
 		              NULL, NULL,
-		              tracker_marshal_BOOLEAN__OBJECT_OBJECT_OBJECT,
+		              NULL,
 		              G_TYPE_BOOLEAN,
 		              3, G_TYPE_FILE, TRACKER_SPARQL_TYPE_BUILDER, G_TYPE_CANCELLABLE);
 
@@ -484,7 +495,7 @@ tracker_miner_fs_class_init (TrackerMinerFSClass *klass)
 		              G_SIGNAL_RUN_LAST,
 		              G_STRUCT_OFFSET (TrackerMinerFSClass, finished),
 		              NULL, NULL,
-		              tracker_marshal_VOID__DOUBLE_UINT_UINT_UINT_UINT,
+		              NULL,
 		              G_TYPE_NONE,
 		              5,
 		              G_TYPE_DOUBLE,
@@ -498,7 +509,7 @@ tracker_miner_fs_class_init (TrackerMinerFSClass *klass)
 	 * @miner_fs: the #TrackerMinerFS
 	 * @file: a #GFile
 	 * @rdf_types: the set of RDF types
-	 * @results: a set of results prepared by the preparation query
+	 * @results: (element-type GStrv): a set of results prepared by the preparation query
 	 * @cancellable: a #GCancellable
 	 *
 	 * The ::writeback-file signal is emitted whenever a file must be written
@@ -515,7 +526,7 @@ tracker_miner_fs_class_init (TrackerMinerFSClass *klass)
 		              G_STRUCT_OFFSET (TrackerMinerFSClass, writeback_file),
 		              NULL,
 		              NULL,
-		              tracker_marshal_BOOLEAN__OBJECT_BOXED_BOXED_OBJECT,
+		              NULL,
 		              G_TYPE_BOOLEAN,
 		              4,
 		              G_TYPE_FILE,
@@ -524,6 +535,8 @@ tracker_miner_fs_class_init (TrackerMinerFSClass *klass)
 		              G_TYPE_CANCELLABLE);
 
 	g_type_class_add_private (object_class, sizeof (TrackerMinerFSPrivate));
+
+	quark_file_iri = g_quark_from_static_string ("tracker-miner-file-iri");
 }
 
 static void
@@ -534,6 +547,15 @@ tracker_miner_fs_init (TrackerMinerFS *object)
 	object->priv = TRACKER_MINER_FS_GET_PRIVATE (object);
 
 	priv = object->priv;
+
+	priv->timer = g_timer_new ();
+	priv->extraction_timer = g_timer_new ();
+
+	g_timer_stop (priv->timer);
+	g_timer_stop (priv->extraction_timer);
+
+	priv->timer_stopped = TRUE;
+	priv->extraction_timer_stopped = TRUE;
 
 	priv->items_created = tracker_priority_queue_new ();
 	priv->items_updated = tracker_priority_queue_new ();
@@ -594,6 +616,7 @@ tracker_miner_fs_init (TrackerMinerFS *object)
 	priv->quark_ignore_file = g_quark_from_static_string ("tracker-ignore-file");
 	priv->quark_directory_found_crawling = g_quark_from_static_string ("tracker-directory-found-crawling");
 	priv->quark_attribute_updated = g_quark_from_static_string ("tracker-attribute-updated");
+	priv->quark_reentry_counter = g_quark_from_static_string ("tracker-reentry-counter");
 
 	priv->mtime_checking = TRUE;
 	priv->initial_crawling = TRUE;
@@ -620,6 +643,8 @@ miner_fs_initable_init (GInitable     *initable,
 	                  G_CALLBACK (task_pool_limit_reached_notify_cb),
 	                  initable);
 
+	priv->thumbnailer = tracker_thumbnailer_new ();
+
 	return TRUE;
 }
 
@@ -637,17 +662,16 @@ fs_finalize (GObject *object)
 
 	priv = TRACKER_MINER_FS_GET_PRIVATE (object);
 
-	if (priv->timer) {
-		g_timer_destroy (priv->timer);
-	}
-
-	if (priv->extraction_timer) {
-		g_timer_destroy (priv->extraction_timer);
-	}
+	g_timer_destroy (priv->timer);
+	g_timer_destroy (priv->extraction_timer);
 
 	if (priv->item_queues_handler_id) {
 		g_source_remove (priv->item_queues_handler_id);
 		priv->item_queues_handler_id = 0;
+	}
+
+	if (priv->item_queue_blocker) {
+		g_object_unref (priv->item_queue_blocker);
 	}
 
 	tracker_file_notifier_stop (priv->file_notifier);
@@ -693,6 +717,9 @@ fs_finalize (GObject *object)
 
 	g_object_unref (priv->indexing_tree);
 	g_object_unref (priv->file_notifier);
+
+	if (priv->thumbnailer)
+		g_object_unref (priv->thumbnailer);
 
 #ifdef EVENT_QUEUE_ENABLE_TRACE
 	if (priv->queue_status_timeout_id)
@@ -903,6 +930,12 @@ process_stop (TrackerMinerFS *fs)
 	/* Now we have finished crawling, print stats and enable monitor events */
 	process_print_stats (fs);
 
+	g_timer_stop (fs->priv->timer);
+	g_timer_stop (fs->priv->extraction_timer);
+
+	fs->priv->timer_stopped = TRUE;
+	fs->priv->extraction_timer_stopped = TRUE;
+
 	tracker_info ("Idle");
 
 	g_object_set (fs,
@@ -912,20 +945,14 @@ process_stop (TrackerMinerFS *fs)
 	              NULL);
 
 	g_signal_emit (fs, signals[FINISHED], 0,
-	               fs->priv->timer ? g_timer_elapsed (fs->priv->timer, NULL) : 0.0,
+	               g_timer_elapsed (fs->priv->timer, NULL),
 	               fs->priv->total_directories_found,
 	               fs->priv->total_directories_ignored,
 	               fs->priv->total_files_found,
 	               fs->priv->total_files_ignored);
 
-	if (fs->priv->extraction_timer) {
-		g_timer_reset (fs->priv->extraction_timer);
-	}
-
-	if (fs->priv->timer) {
-		g_timer_destroy (fs->priv->timer);
-		fs->priv->timer = NULL;
-	}
+	g_timer_stop (fs->priv->timer);
+	g_timer_stop (fs->priv->extraction_timer);
 
 	fs->priv->total_directories_found = 0;
 	fs->priv->total_directories_ignored = 0;
@@ -984,6 +1011,21 @@ item_writeback_data_free (ItemWritebackData *data)
 	g_slice_free (ItemWritebackData, data);
 }
 
+static gboolean
+item_queue_is_blocked_by_file (TrackerMinerFS *fs,
+                               GFile *file)
+{
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+
+	if (fs->priv->item_queue_blocker != NULL &&
+	    (fs->priv->item_queue_blocker == file ||
+	     g_file_equal (fs->priv->item_queue_blocker, file))) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 static void
 sparql_buffer_task_finished_cb (GObject      *object,
                                 GAsyncResult *result,
@@ -991,6 +1033,8 @@ sparql_buffer_task_finished_cb (GObject      *object,
 {
 	TrackerMinerFS *fs;
 	TrackerMinerFSPrivate *priv;
+	TrackerTask *task;
+	GFile *task_file;
 	GError *error = NULL;
 
 	fs = user_data;
@@ -1003,7 +1047,22 @@ sparql_buffer_task_finished_cb (GObject      *object,
 		g_error_free (error);
 	}
 
-	item_queue_handlers_set_up (fs);
+	task = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (result));
+	task_file = tracker_task_get_file (task);
+
+	if (item_queue_is_blocked_by_file (fs, task_file)) {
+		g_object_unref (priv->item_queue_blocker);
+		priv->item_queue_blocker = NULL;
+	}
+
+	if (priv->item_queue_blocker != NULL) {
+		if (tracker_task_pool_get_size (TRACKER_TASK_POOL (object)) > 0) {
+			tracker_sparql_buffer_flush (TRACKER_SPARQL_BUFFER (object),
+			                             "Item queue still blocked after flush");
+		}
+	} else {
+		item_queue_handlers_set_up (fs);
+	}
 }
 
 static UpdateProcessingTaskContext *
@@ -1197,15 +1256,49 @@ item_add_or_update_cb (TrackerMinerFS *fs,
 		                            ctxt->priority,
 		                            sparql_buffer_task_finished_cb,
 		                            fs);
+
+		if (item_queue_is_blocked_by_file (fs, task_file)) {
+			tracker_sparql_buffer_flush (fs->priv->sparql_buffer, "Current file is blocking item queue");
+		}
+	} else {
+		if (item_queue_is_blocked_by_file (fs, task_file)) {
+			/* Make sure that we don't stall the item queue, although we could
+			 * expect the file to be reenqueued until the loop detector makes
+			 * us drop it since we were specifically waiting for it to complete.
+			 */
+			g_object_unref (fs->priv->item_queue_blocker);
+			fs->priv->item_queue_blocker = NULL;
+			item_queue_handlers_set_up (fs);
+		}
 	}
 
-	if (!tracker_task_pool_limit_reached (TRACKER_TASK_POOL (fs->priv->sparql_buffer))) {
+	if (tracker_miner_fs_has_items_to_process (fs) == FALSE &&
+	    tracker_task_pool_get_size (TRACKER_TASK_POOL (fs->priv->task_pool)) == 0) {
+		/* We need to run this one more time to trigger process_stop() */
 		item_queue_handlers_set_up (fs);
 	}
 
 	tracker_task_unref (extraction_task);
 
 	g_free (uri);
+}
+
+static const gchar *
+lookup_file_urn (TrackerMinerFS *fs,
+                 GFile          *file,
+                 gboolean        force)
+{
+	const gchar *urn;
+
+	g_return_val_if_fail (TRACKER_IS_MINER_FS (fs), NULL);
+	g_return_val_if_fail (G_IS_FILE (file), NULL);
+
+	urn = g_object_get_qdata (G_OBJECT (file), quark_file_iri);
+
+	if (!urn)
+		urn = tracker_file_notifier_get_file_iri (fs->priv->file_notifier,
+		                                          file, force);
+	return urn;
 }
 
 static gboolean
@@ -1230,14 +1323,15 @@ item_add_or_update (TrackerMinerFS *fs,
 	sparql = tracker_sparql_builder_new_update ();
 	g_object_ref (file);
 
-	if (!is_new) {
-		urn = tracker_file_notifier_get_file_iri (fs->priv->file_notifier,
-		                                          file);
-	}
+	/* Always query. No matter we are notified the file was just
+	 * created, its meta data might already be in the store
+	 * (possibly inserted by other application) - in such a case
+	 * we have to UPDATE, not INSERT. */
+	urn = lookup_file_urn (fs, file, FALSE);
 
 	if (!tracker_indexing_tree_file_is_root (fs->priv->indexing_tree, file)) {
 		parent = g_file_get_parent (file);
-		parent_urn = tracker_file_notifier_get_file_iri (fs->priv->file_notifier, parent);
+		parent_urn = lookup_file_urn (fs, parent, TRUE);
 		g_object_unref (parent);
 	} else {
 		parent_urn = NULL;
@@ -1287,8 +1381,11 @@ item_remove (TrackerMinerFS *fs,
 	if (!only_children) {
 		flags = TRACKER_BULK_MATCH_EQUALS;
 	} else {
-		tracker_thumbnailer_remove_add (uri, NULL);
-		tracker_media_art_queue_removal (uri, NULL);
+		if (fs->priv->thumbnailer)
+			tracker_thumbnailer_remove_add (fs->priv->thumbnailer, uri, NULL);
+#ifdef HAVE_LIBMEDIAART
+		tracker_media_art_queue_remove (uri, NULL);
+#endif
 	}
 
 	/* FIRST:
@@ -1440,6 +1537,7 @@ item_update_children_uri_cb (GObject      *object,
                              gpointer      user_data)
 {
 	RecursiveMoveData *data = user_data;
+	TrackerMinerFS *fs = TRACKER_MINER_FS (data->miner);
 	GError *error = NULL;
 
 	TrackerSparqlCursor *cursor = tracker_sparql_connection_query_finish (TRACKER_SPARQL_CONNECTION (object), result, &error);
@@ -1482,7 +1580,9 @@ item_update_children_uri_cb (GObject      *object,
 			                        "} ",
 			                        child_urn, child_urn, child_uri);
 
-			tracker_thumbnailer_move_add (child_source_uri, child_mime, child_uri);
+			if (fs->priv->thumbnailer)
+				tracker_thumbnailer_move_add (fs->priv->thumbnailer,
+							      child_source_uri, child_mime, child_uri);
 
 			g_free (child_uri);
 		}
@@ -1544,8 +1644,7 @@ item_move (TrackerMinerFS *fs,
 	                               NULL, NULL);
 
 	/* Get 'source' ID */
-	source_iri = tracker_file_notifier_get_file_iri (fs->priv->file_notifier,
-	                                                 source_file);
+	source_iri = lookup_file_urn (fs, source_file, FALSE);
 	source_exists = (source_iri != NULL);
 
 	if (!file_info) {
@@ -1569,9 +1668,10 @@ item_move (TrackerMinerFS *fs,
 	         source_uri,
 	         uri);
 
-	tracker_thumbnailer_move_add (source_uri,
-	                              g_file_info_get_content_type (file_info),
-	                              uri);
+	if (fs->priv->thumbnailer)
+		tracker_thumbnailer_move_add (fs->priv->thumbnailer, source_uri,
+					      g_file_info_get_content_type (file_info),
+					      uri);
 
 	sparql = g_string_new ("");
 
@@ -1602,8 +1702,8 @@ item_move (TrackerMinerFS *fs,
 
 	/* Get new parent information */
 	new_parent = g_file_get_parent (file);
-	new_parent_iri = tracker_file_notifier_get_file_iri (fs->priv->file_notifier,
-	                                                     new_parent);
+	new_parent_iri = lookup_file_urn (fs, new_parent, TRUE);
+
 	if (new_parent && new_parent_iri) {
 		g_string_append_printf (sparql,
 		                        "INSERT INTO <%s> {"
@@ -1647,6 +1747,7 @@ item_move (TrackerMinerFS *fs,
 			move_data.sparql = sparql;
 			move_data.source_uri = source_uri;
 			move_data.uri = uri;
+			move_data.miner = TRACKER_MINER (fs);
 
 			item_update_children_uri (fs, &move_data, source_uri, uri);
 
@@ -1706,6 +1807,7 @@ should_wait (TrackerMinerFS *fs,
 	    tracker_task_pool_find (TRACKER_TASK_POOL (fs->priv->sparql_buffer), file)) {
 		/* Yes, a previous event on same item currently
 		 * being processed */
+		fs->priv->item_queue_blocker = g_object_ref (file);
 		return TRUE;
 	}
 
@@ -1716,13 +1818,61 @@ should_wait (TrackerMinerFS *fs,
 		    tracker_task_pool_find (TRACKER_TASK_POOL (fs->priv->sparql_buffer), parent)) {
 			/* Yes, a previous event on the parent of this item
 			 * currently being processed */
-			g_object_unref (parent);
+			fs->priv->item_queue_blocker = parent;
 			return TRUE;
 		}
 
 		g_object_unref (parent);
 	}
 	return FALSE;
+}
+
+static gboolean
+item_reenqueue_full (TrackerMinerFS       *fs,
+                     TrackerPriorityQueue *item_queue,
+                     GFile                *queue_file,
+                     gpointer              queue_data,
+                     gint                  priority)
+{
+	gint reentry_counter;
+	gchar *uri;
+	gboolean should_wait;
+
+	reentry_counter = GPOINTER_TO_INT (g_object_get_qdata (G_OBJECT (queue_file),
+	                                                       fs->priv->quark_reentry_counter));
+
+	if (reentry_counter < REENTRY_MAX) {
+		g_object_set_qdata (G_OBJECT (queue_file),
+		                    fs->priv->quark_reentry_counter,
+		                    GINT_TO_POINTER (reentry_counter + 1));
+		tracker_priority_queue_add (item_queue, queue_data, priority);
+
+		should_wait = TRUE;
+	} else {
+		uri = g_file_get_uri (queue_file);
+		g_warning ("File '%s' has been reenqueued more than %d times. It will not be indexed.", uri, REENTRY_MAX);
+		g_free (uri);
+
+		/* We must be careful not to return QUEUE_WAIT when there's actually
+		 * nothing left to wait for, or the crawling might never complete.
+		 */
+		if (tracker_miner_fs_has_items_to_process (fs)) {
+			should_wait = TRUE;
+		} else {
+			should_wait = FALSE;
+		}
+	}
+
+	return should_wait;
+}
+
+static gboolean
+item_reenqueue (TrackerMinerFS       *fs,
+                TrackerPriorityQueue *item_queue,
+                GFile                *queue_file,
+                gint                  priority)
+{
+	return item_reenqueue_full (fs, item_queue, queue_file, queue_file, priority);
 }
 
 static QueueState
@@ -1789,9 +1939,11 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
 			trace_eq_push_head ("DELETED", queue_file, "Should wait");
 
 			/* Need to postpone event... */
-			tracker_priority_queue_add (fs->priv->items_deleted,
-			                            queue_file, priority - 1);
-			return QUEUE_WAIT;
+			if (item_reenqueue (fs, fs->priv->items_deleted, queue_file, priority - 1)) {
+				return QUEUE_WAIT;
+			} else {
+				return QUEUE_NONE;
+			}
 		}
 
 		*file = queue_file;
@@ -1817,8 +1969,7 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
 
 			uri = g_file_get_uri (queue_file);
 
-			if (tracker_file_notifier_get_file_iri (fs->priv->file_notifier,
-			                                        queue_file) != NULL) {
+			if (lookup_file_urn (fs, queue_file, FALSE) != NULL) {
 				g_debug ("CREATED event ignored on file '%s' as it already existed, "
 				         " processing as IgnoreNextUpdate...",
 				         uri);
@@ -1842,9 +1993,11 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
 			trace_eq_push_head ("CREATED", queue_file, "Should wait");
 
 			/* Need to postpone event... */
-			tracker_priority_queue_add (fs->priv->items_created,
-			                            queue_file, priority - 1);
-			return QUEUE_WAIT;
+			if (item_reenqueue (fs, fs->priv->items_created, queue_file, priority - 1)) {
+				return QUEUE_WAIT;
+			} else {
+				return QUEUE_NONE;
+			}
 		}
 
 		*file = queue_file;
@@ -1881,9 +2034,11 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
 			trace_eq_push_head ("UPDATED", queue_file, "Should wait");
 
 			/* Need to postpone event... */
-			tracker_priority_queue_add (fs->priv->items_updated,
-			                            queue_file, priority - 1);
-			return QUEUE_WAIT;
+			if (item_reenqueue (fs, fs->priv->items_updated, queue_file, priority - 1)) {
+				return QUEUE_WAIT;
+			} else {
+				return QUEUE_NONE;
+			}
 		}
 
 		*priority_out = priority;
@@ -1925,9 +2080,11 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
 			trace_eq_push_head_2 ("MOVED", data->source_file, data->file, "Should wait");
 
 			/* Need to postpone event... */
-			tracker_priority_queue_add (fs->priv->items_moved,
-			                            data, priority - 1);
-			return QUEUE_WAIT;
+			if (item_reenqueue_full (fs, fs->priv->items_moved, data->file, data, priority - 1)) {
+				return QUEUE_WAIT;
+			} else {
+				return QUEUE_NONE;
+			}
 		}
 
 		*file = g_object_ref (data->file);
@@ -1943,8 +2100,7 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
 	if (tracker_file_notifier_is_active (fs->priv->file_notifier) ||
 	    tracker_task_pool_limit_reached (fs->priv->task_pool) ||
 	    tracker_task_pool_limit_reached (TRACKER_TASK_POOL (fs->priv->sparql_buffer))) {
-		if (fs->priv->extraction_timer &&
-		    tracker_task_pool_get_size (fs->priv->task_pool) == 0) {
+		if (tracker_task_pool_get_size (fs->priv->task_pool) == 0) {
 			fs->priv->extraction_timer_stopped = TRUE;
 			g_timer_stop (fs->priv->extraction_timer);
 		}
@@ -2006,6 +2162,11 @@ item_queue_handlers_cb (gpointer user_data)
 	gboolean keep_processing = TRUE;
 	gint priority = 0;
 
+	if (fs->priv->timer_stopped) {
+		g_timer_start (fs->priv->timer);
+		fs->priv->timer_stopped = FALSE;
+	}
+
 	if (tracker_task_pool_limit_reached (TRACKER_TASK_POOL (fs->priv->sparql_buffer))) {
 		/* Task pool is full, give it a break */
 		fs->priv->item_queues_handler_id = 0;
@@ -2027,6 +2188,7 @@ item_queue_handlers_cb (gpointer user_data)
 		 * on with the queues... */
 		tracker_sparql_buffer_flush (fs->priv->sparql_buffer,
 		                             "Queue handlers WAIT");
+
 		return FALSE;
 	}
 
@@ -2051,19 +2213,11 @@ item_queue_handlers_cb (gpointer user_data)
 	}
 
 	if (queue == QUEUE_NONE) {
-		if (fs->priv->extraction_timer) {
-			g_timer_stop (fs->priv->extraction_timer);
-			fs->priv->extraction_timer_stopped = TRUE;
-		}
-	} else if (!fs->priv->extraction_timer) {
-		fs->priv->extraction_timer = g_timer_new ();
+		g_timer_stop (fs->priv->extraction_timer);
+		fs->priv->extraction_timer_stopped = TRUE;
 	} else if (fs->priv->extraction_timer_stopped) {
 		g_timer_continue (fs->priv->extraction_timer);
 		fs->priv->extraction_timer_stopped = FALSE;
-	}
-
-	if (!fs->priv->timer) {
-		fs->priv->timer = g_timer_new ();
 	}
 
 	/* Update progress, but don't spam it. */
@@ -2151,8 +2305,11 @@ item_queue_handlers_cb (gpointer user_data)
 				/* Print stats and signal finished */
 				process_stop (fs);
 
-				tracker_thumbnailer_send ();
-				tracker_media_art_execute_queue (tracker_miner_get_connection (TRACKER_MINER (fs)));
+				if (fs->priv->thumbnailer)
+					tracker_thumbnailer_send (fs->priv->thumbnailer);
+#ifdef HAVE_LIBMEDIAART
+				tracker_media_art_queue_empty (tracker_miner_get_connection (TRACKER_MINER (fs)));
+#endif
 			} else {
 				/* Flush any possible pending update here */
 				tracker_sparql_buffer_flush (fs->priv->sparql_buffer,
@@ -2175,7 +2332,7 @@ item_queue_handlers_cb (gpointer user_data)
 
 		if (!parent ||
 		    tracker_indexing_tree_file_is_root (fs->priv->indexing_tree, file) ||
-		    tracker_file_notifier_get_file_iri (fs->priv->file_notifier, parent)) {
+		    lookup_file_urn (fs, parent, TRUE)) {
 			keep_processing = item_add_or_update (fs, file, priority,
 			                                      (queue == QUEUE_CREATED));
 		} else {
@@ -2197,13 +2354,9 @@ item_queue_handlers_cb (gpointer user_data)
 			 * ensured, tasks are inserted at a higher priority so they
 			 * are processed promptly anyway.
 			 */
-			tracker_priority_queue_add (item_queue,
-			                            g_object_ref (parent),
-			                            priority - 1);
+			item_reenqueue (fs, item_queue, g_object_ref (parent), priority - 1);
+			item_reenqueue (fs, item_queue, g_object_ref (file), priority);
 
-			tracker_priority_queue_add (item_queue,
-			                            g_object_ref (file),
-			                            priority);
 			keep_processing = TRUE;
 		}
 
@@ -2266,6 +2419,12 @@ item_queue_handlers_set_up (TrackerMinerFS *fs)
 
 	if (fs->priv->is_paused) {
 		trace_eq ("   cancelled: paused");
+		return;
+	}
+
+	if (fs->priv->item_queue_blocker) {
+		trace_eq ("   cancelled: item queue blocked waiting for file '%s'",
+		          g_file_get_path (fs->priv->item_queue_blocker));
 		return;
 	}
 
@@ -2385,6 +2544,45 @@ cancel_writeback_task (TrackerMinerFS *fs,
 		tracker_task_pool_remove (fs->priv->writeback_pool, task);
 		tracker_task_unref (task);
 	}
+}
+
+static gint
+miner_fs_get_queue_priority (TrackerMinerFS *fs,
+                             GFile          *file)
+{
+	TrackerDirectoryFlags flags;
+
+	tracker_indexing_tree_get_root (fs->priv->indexing_tree,
+	                                file, &flags);
+
+	return (flags & TRACKER_DIRECTORY_FLAG_PRIORITY) ?
+	        G_PRIORITY_HIGH : G_PRIORITY_DEFAULT;
+}
+
+static void
+miner_fs_cache_file_urn (TrackerMinerFS *fs,
+                         GFile          *file,
+                         gboolean        query_urn)
+{
+	const gchar *urn;
+
+	/* Store urn as qdata */
+	urn = tracker_file_notifier_get_file_iri (fs->priv->file_notifier, file, query_urn);
+	g_object_set_qdata_full (G_OBJECT (file), quark_file_iri,
+	                         g_strdup (urn), (GDestroyNotify) g_free);
+}
+
+static void
+miner_fs_queue_file (TrackerMinerFS       *fs,
+                     TrackerPriorityQueue *item_queue,
+                     GFile                *file,
+                     gboolean              query_urn)
+{
+	gint priority;
+
+	miner_fs_cache_file_urn (fs, file, query_urn);
+	priority = miner_fs_get_queue_priority (fs, file);
+	tracker_priority_queue_add (item_queue, g_object_ref (file), priority);
 }
 
 /* Checks previous created/updated/deleted/moved/writeback queues for
@@ -2513,9 +2711,7 @@ check_item_queues (TrackerMinerFS *fs,
 			 */
 			g_debug ("  Found matching unhandled CREATED event "
 			         "for source file, merging both events together");
-			tracker_priority_queue_add (fs->priv->items_created,
-			                            g_object_ref (other_file),
-			                            G_PRIORITY_DEFAULT);
+			miner_fs_queue_file (fs, fs->priv->items_created, other_file, FALSE);
 
 			return FALSE;
 		}
@@ -2550,9 +2746,7 @@ file_notifier_file_created (TrackerFileNotifier  *notifier,
 	TrackerMinerFS *fs = user_data;
 
 	if (check_item_queues (fs, QUEUE_CREATED, file, NULL)) {
-		tracker_priority_queue_add (fs->priv->items_created,
-		                            g_object_ref (file),
-		                            G_PRIORITY_DEFAULT);
+		miner_fs_queue_file (fs, fs->priv->items_created, file, FALSE);
 		item_queue_handlers_set_up (fs);
 	}
 }
@@ -2565,9 +2759,7 @@ file_notifier_file_deleted (TrackerFileNotifier  *notifier,
 	TrackerMinerFS *fs = user_data;
 
 	if (check_item_queues (fs, QUEUE_DELETED, file, NULL)) {
-		tracker_priority_queue_add (fs->priv->items_deleted,
-		                            g_object_ref (file),
-		                            G_PRIORITY_DEFAULT);
+		miner_fs_queue_file (fs, fs->priv->items_deleted, file, FALSE);
 		item_queue_handlers_set_up (fs);
 	}
 }
@@ -2598,9 +2790,7 @@ file_notifier_file_updated (TrackerFileNotifier  *notifier,
 			                    GINT_TO_POINTER (TRUE));
 		}
 
-		tracker_priority_queue_add (fs->priv->items_updated,
-		                            g_object_ref (file),
-		                            G_PRIORITY_DEFAULT);
+		miner_fs_queue_file (fs, fs->priv->items_updated, file, TRUE);
 		item_queue_handlers_set_up (fs);
 	}
 }
@@ -2614,9 +2804,12 @@ file_notifier_file_moved (TrackerFileNotifier *notifier,
 	TrackerMinerFS *fs = user_data;
 
 	if (check_item_queues (fs, QUEUE_MOVED, source, dest)) {
+		gint priority;
+
+		priority = miner_fs_get_queue_priority (fs, dest);
 		tracker_priority_queue_add (fs->priv->items_moved,
 		                            item_moved_data_new (dest, source),
-		                            G_PRIORITY_DEFAULT);
+					    priority);
 		item_queue_handlers_set_up (fs);
 	}
 }
@@ -2640,6 +2833,16 @@ file_notifier_directory_started (TrackerFileNotifier *notifier,
                 str = g_strdup_printf ("Crawling single directory '%s'", uri);
         }
 
+	if (fs->priv->timer_stopped) {
+		g_timer_start (fs->priv->timer);
+		fs->priv->timer_stopped = FALSE;
+	}
+
+	if (fs->priv->extraction_timer_stopped) {
+		g_timer_start (fs->priv->timer);
+		fs->priv->extraction_timer_stopped = FALSE;
+	}
+
 	/* Always set the progress here to at least 1%, and the remaining time
          * to -1 as we cannot guess during crawling (we don't know how many directories
          * we will find) */
@@ -2650,10 +2853,6 @@ file_notifier_directory_started (TrackerFileNotifier *notifier,
                       NULL);
 	g_free (str);
 	g_free (uri);
-
-	if (!fs->priv->timer) {
-		fs->priv->timer = g_timer_new ();
-	}
 }
 
 static void
@@ -2686,7 +2885,7 @@ file_notifier_finished (TrackerFileNotifier *notifier,
 	TrackerMinerFS *fs = user_data;
 
 	if (!tracker_miner_fs_has_items_to_process (fs)) {
-		g_message ("Finished content crawling");
+		tracker_info ("Finished all tasks");
 		process_stop (fs);
 	}
 }
@@ -2914,9 +3113,7 @@ tracker_miner_fs_directory_remove_full (TrackerMinerFS *fs,
 			 * to preserve remove_full() semantics.
 			 */
 			trace_eq_push_tail ("DELETED", file, "on remove full");
-			tracker_priority_queue_add (fs->priv->items_deleted,
-			                            g_object_ref (file),
-			                            G_PRIORITY_DEFAULT);
+			miner_fs_queue_file (fs, fs->priv->items_deleted, file, FALSE);
 			item_queue_handlers_set_up (fs);
 		}
 
@@ -2960,9 +3157,8 @@ check_file_parents (TrackerMinerFS *fs,
 
 	for (p = parents; p; p = p->next) {
 		trace_eq_push_tail ("UPDATED", p->data, "checking file parents");
-		tracker_priority_queue_add (fs->priv->items_updated,
-		                            p->data,
-		                            G_PRIORITY_DEFAULT);
+		miner_fs_queue_file (fs, fs->priv->items_updated, p->data, TRUE);
+		g_object_unref (p->data);
 	}
 
 	g_list_free (parents);
@@ -3012,6 +3208,7 @@ tracker_miner_fs_check_file_with_priority (TrackerMinerFS *fs,
 		}
 
 		trace_eq_push_tail ("UPDATED", file, "Requested by application");
+		miner_fs_cache_file_urn (fs, file, TRUE);
 		tracker_priority_queue_add (fs->priv->items_updated,
 		                            g_object_ref (file),
 		                            priority);
@@ -3028,7 +3225,7 @@ tracker_miner_fs_check_file_with_priority (TrackerMinerFS *fs,
  * @fs: a #TrackerMinerFS
  * @file: #GFile for the file to check
  * @rdf_types: A #GStrv with rdf types
- * @results: A array of results from the preparation query
+ * @results: (element-type GStrv): A array of results from the preparation query
  *
  * Tells the filesystem miner to writeback a file.
  *
@@ -3186,16 +3383,22 @@ tracker_miner_fs_check_directory_with_priority (TrackerMinerFS *fs,
 	         path);
 
 	if (should_process) {
+		TrackerDirectoryFlags flags;
+
 		if (check_parents && !check_file_parents (fs, file)) {
 			return;
 		}
 
-		/* FIXME: Apply priority */
+		flags = TRACKER_DIRECTORY_FLAG_RECURSE |
+			TRACKER_DIRECTORY_FLAG_CHECK_MTIME |
+			TRACKER_DIRECTORY_FLAG_MONITOR;
+
+		/* Priorities run from positive to negative */
+		if (priority < G_PRIORITY_DEFAULT)
+			flags |= TRACKER_DIRECTORY_FLAG_PRIORITY;
+
 		tracker_indexing_tree_add (fs->priv->indexing_tree,
-		                           file,
-		                           TRACKER_DIRECTORY_FLAG_RECURSE |
-		                           TRACKER_DIRECTORY_FLAG_CHECK_MTIME |
-		                           TRACKER_DIRECTORY_FLAG_MONITOR);
+		                           file, flags);
 	}
 
 	g_free (path);
@@ -3219,7 +3422,7 @@ tracker_miner_fs_check_directory (TrackerMinerFS *fs,
                                   gboolean        check_parents)
 {
 	tracker_miner_fs_check_directory_with_priority (fs, file,
-	                                                G_PRIORITY_DEFAULT,
+	                                                G_PRIORITY_HIGH,
 	                                                check_parents);
 }
 
@@ -3261,6 +3464,13 @@ tracker_miner_fs_file_notify (TrackerMinerFS *fs,
 		            "signal didn't return FALSE for it",
 		            G_OBJECT_TYPE_NAME (fs), uri);
 		g_free (uri);
+
+		if (item_queue_is_blocked_by_file (fs, file)) {
+			/* Ensure we don't stall, although this is a very ugly situation */
+			g_object_unref (fs->priv->item_queue_blocker);
+			fs->priv->item_queue_blocker = NULL;
+			item_queue_handlers_set_up (fs);
+		}
 
 		return;
 	}
@@ -3404,8 +3614,7 @@ tracker_miner_fs_query_urn (TrackerMinerFS *fs,
 	g_return_val_if_fail (TRACKER_IS_MINER_FS (fs), NULL);
 	g_return_val_if_fail (G_IS_FILE (file), NULL);
 
-	return g_strdup (tracker_file_notifier_get_file_iri (fs->priv->file_notifier,
-	                                                     file));
+	return g_strdup (lookup_file_urn (fs, file, TRUE));
 }
 
 /**

@@ -67,6 +67,8 @@ struct _TrackerMinerFS {
  * @process_file_attributes: Called when the metadata associated with
  * a file's attributes changes, for example, the mtime.
  * @writeback_file: Called when a file must be written back
+ * @padding: Reserved for future API improvements.
+
  *
  * Prototype for the abstract class, @process_file must be implemented
  * in the deriving class in order to actually extract data.
@@ -91,6 +93,8 @@ typedef struct {
 	                                       GFile                *file,
 	                                       GStrv                 rdf_types,
 	                                       GPtrArray            *results);
+	/* <Private> */
+	gpointer padding[10];
 } TrackerMinerFSClass;
 
 GType                 tracker_miner_fs_get_type             (void) G_GNUC_CONST;

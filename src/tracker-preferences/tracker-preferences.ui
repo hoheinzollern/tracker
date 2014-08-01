@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.18.2 -->
 <interface>
-  <requires lib="gtk+" version="2.16"/>
-  <!-- interface-naming-policy toplevel-contextual -->
+  <requires lib="gtk+" version="3.12"/>
   <object class="GtkAdjustment" id="adjustment_delay">
     <property name="upper">1000</property>
     <property name="value">10</property>
@@ -62,13 +62,13 @@
     <signal name="delete-event" handler="gtk_main_quit" swapped="no"/>
     <signal name="response" handler="tracker_preferences_response_cb" swapped="no"/>
     <child internal-child="vbox">
-      <object class="GtkVBox" id="dialog-vbox1">
+      <object class="GtkBox" id="dialog-vbox1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
-          <object class="GtkHButtonBox" id="dialog-action_area1">
-            <property name="visible">True</property>
+          <object class="GtkButtonBox" id="dialog-action_area1">
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
@@ -77,12 +77,11 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">False</property>
+                <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
@@ -92,12 +91,11 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="use_stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">False</property>
+                <property name="fill">True</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -114,142 +112,13 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="border_width">6</property>
+            <property name="show_border">False</property>
             <child>
-              <object class="GtkVBox" id="vbox1">
-                <property name="can_focus">False</property>
-                <property name="border_width">12</property>
-                <property name="spacing">18</property>
-                <child>
-                  <object class="GtkFrame" id="frame_general">
-                    <property name="can_focus">False</property>
-                    <property name="no_show_all">True</property>
-                    <property name="label_xalign">0</property>
-                    <property name="shadow_type">none</property>
-                    <child>
-                      <object class="GtkAlignment" id="alignment1">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="top_padding">6</property>
-                        <property name="left_padding">12</property>
-                        <child>
-                          <object class="GtkVBox" id="vbox_general">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <child>
-                              <object class="GtkHBox" id="hbox_delay">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="spacing">12</property>
-                                <child>
-                                  <object class="GtkLabel" id="label_delay">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">_Delay</property>
-                                    <property name="use_underline">True</property>
-                                    <property name="mnemonic_widget">spinbutton_delay</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkHBox" id="hbox16">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="spacing">6</property>
-                                    <child>
-                                      <object class="GtkSpinButton" id="spinbutton_delay">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="invisible_char">●</property>
-                                        <property name="primary_icon_activatable">False</property>
-                                        <property name="secondary_icon_activatable">False</property>
-                                        <property name="primary_icon_sensitive">True</property>
-                                        <property name="secondary_icon_sensitive">True</property>
-                                        <property name="adjustment">adjustment_delay</property>
-                                        <property name="climb_rate">1</property>
-                                        <property name="snap_to_ticks">True</property>
-                                        <property name="numeric">True</property>
-                                        <signal name="value-changed" handler="tracker_preferences_spinbutton_delay_value_changed_cb" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">True</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel" id="label_delay_seconds">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="label" translatable="yes">seconds</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">False</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                    <child type="label">
-                      <object class="GtkLabel" id="label_general">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Start up</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                        </attributes>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-              </object>
-            </child>
-            <child type="tab">
-              <object class="GtkLabel" id="label3">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">General</property>
-              </object>
-              <packing>
-                <property name="tab_fill">False</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkVBox" id="vbox10">
+              <object class="GtkBox" id="vbox_indexing">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="border_width">12</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">18</property>
                 <child>
                   <object class="GtkFrame" id="frame_indexing">
@@ -264,9 +133,10 @@
                         <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <object class="GtkVBox" id="vbox_indexing">
+                          <object class="GtkBox" id="vbox_semantics">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
                             <child>
                               <object class="GtkCheckButton" id="checkbutton_enable_monitoring">
                                 <property name="label" translatable="yes">_Monitor file and directory changes</property>
@@ -274,7 +144,6 @@
                                 <property name="can_focus">True</property>
                                 <property name="has_focus">True</property>
                                 <property name="receives_default">False</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="xalign">0</property>
                                 <property name="active">True</property>
@@ -293,7 +162,6 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="xalign">0</property>
                                 <property name="active">True</property>
@@ -317,7 +185,6 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="use_underline">True</property>
                                     <property name="xalign">0</property>
                                     <property name="active">True</property>
@@ -339,7 +206,6 @@
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">False</property>
                                 <property name="tooltip_text" translatable="yes">This covers ALL removable media, memory cards, CDs, DVDs, etc.</property>
-                                <property name="use_action_appearance">False</property>
                                 <property name="use_underline">True</property>
                                 <property name="xalign">0</property>
                                 <property name="active">True</property>
@@ -363,7 +229,6 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
-                                    <property name="use_action_appearance">False</property>
                                     <property name="use_underline">True</property>
                                     <property name="xalign">0</property>
                                     <property name="active">True</property>
@@ -400,7 +265,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkFrame" id="frame_general1">
+                  <object class="GtkFrame" id="frame_limitations">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label_xalign">0</property>
@@ -412,14 +277,16 @@
                         <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <object class="GtkVBox" id="vbox11">
+                          <object class="GtkBox" id="vbox11">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
                             <property name="spacing">18</property>
                             <child>
-                              <object class="GtkVBox" id="vbox12">
+                              <object class="GtkBox" id="vbox12">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
                                 <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkLabel" id="label13">
@@ -441,9 +308,10 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkVBox" id="vbox7">
+                                  <object class="GtkBox" id="vbox7">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
+                                    <property name="orientation">vertical</property>
                                     <child>
                                       <object class="GtkRadioButton" id="radiobutton_sched_idle_always">
                                         <property name="label" translatable="yes">O_nly when computer is not being used</property>
@@ -451,9 +319,8 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">False</property>
                                         <property name="tooltip_markup" translatable="yes">Indexing content will be &lt;b&gt;much slower&lt;/b&gt; but other applications will have priority.</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="use_underline">True</property>
-                                        <property name="yalign">0.51999998092651367</property>
+                                        <property name="xalign">0</property>
                                         <property name="active">True</property>
                                         <property name="draw_indicator">True</property>
                                       </object>
@@ -470,8 +337,8 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">False</property>
                                         <property name="tooltip_markup" translatable="yes">Indexing content will be &lt;b&gt;much slower&lt;/b&gt; but other applications will have priority. This will only be the case on the &lt;b&gt;first index&lt;/b&gt; of your content after you start your computer from a new install</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="use_underline">True</property>
+                                        <property name="xalign">0.5</property>
                                         <property name="active">True</property>
                                         <property name="draw_indicator">True</property>
                                         <property name="group">radiobutton_sched_idle_always</property>
@@ -489,8 +356,8 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">False</property>
                                         <property name="tooltip_markup" translatable="yes">Indexing content will be as &lt;b&gt;fast&lt;/b&gt; as possible but other applications may suffer and be slower as a result.</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="use_underline">True</property>
+                                        <property name="xalign">0</property>
                                         <property name="active">True</property>
                                         <property name="draw_indicator">True</property>
                                         <property name="group">radiobutton_sched_idle_always</property>
@@ -516,9 +383,10 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkVBox" id="vbox13">
+                              <object class="GtkBox" id="hbox13">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="spacing">12</property>
                                 <child>
                                   <object class="GtkLabel" id="label_disk_space_limit">
                                     <property name="visible">True</property>
@@ -536,16 +404,17 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkHScale" id="hscale_disk_space_limit">
+                                  <object class="GtkScale" id="hscale_disk_space_limit">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="adjustment">adjustment_disk_space_limit</property>
                                     <property name="round_digits">0</property>
                                     <property name="digits">0</property>
+                                    <property name="value_pos">left</property>
                                     <signal name="format-value" handler="tracker_preferences_hscale_disk_space_limit_format_value_cb" swapped="no"/>
                                   </object>
                                   <packing>
-                                    <property name="expand">False</property>
+                                    <property name="expand">True</property>
                                     <property name="fill">True</property>
                                     <property name="position">1</property>
                                   </packing>
@@ -579,7 +448,7 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkFrame" id="frame2">
+                  <object class="GtkFrame" id="frame_garbage_collection">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label_xalign">0</property>
@@ -591,20 +460,22 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                         <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <object class="GtkVBox" id="vbox9">
+                          <object class="GtkBox" id="vbox9">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
                             <child>
-                              <object class="GtkLabel" id="label_device_drop_threshold1">
+                              <object class="GtkLabel" id="label_device_drop_threshold">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="xalign">0</property>
                                 <property name="yalign">0</property>
                                 <property name="xpad">3</property>
                                 <property name="ypad">4</property>
-                                <property name="label" translatable="yes">Days before deleting removable devices / files since last mounted:</property>
+                                <property name="label" translatable="yes">Indexed content from removable devices that have not been inserted for a while, are cleaned up to avoid build up of unused resources.</property>
                                 <property name="use_underline">True</property>
-                                <property name="mnemonic_widget">hscale_drop_device_threshold</property>
+                                <property name="wrap">True</property>
+                                <property name="max_width_chars">20</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -613,13 +484,43 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkHScale" id="hscale_drop_device_threshold">
+                              <object class="GtkBox" id="box1">
                                 <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="adjustment">adjustment_drop_device_threshold</property>
-                                <property name="round_digits">0</property>
-                                <property name="digits">0</property>
-                                <signal name="format-value" handler="tracker_preferences_hscale_drop_device_threshold_format_value_cb" swapped="no"/>
+                                <property name="can_focus">False</property>
+                                <property name="spacing">12</property>
+                                <child>
+                                  <object class="GtkLabel" id="label_device_drop_threshold1">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="xalign">0</property>
+                                    <property name="yalign">0</property>
+                                    <property name="xpad">3</property>
+                                    <property name="ypad">4</property>
+                                    <property name="label" translatable="yes">Days before deleting removable devices:</property>
+                                    <property name="use_underline">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkScale" id="hscale_drop_device_threshold">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="adjustment">adjustment_drop_device_threshold</property>
+                                    <property name="round_digits">0</property>
+                                    <property name="digits">0</property>
+                                    <property name="value_pos">left</property>
+                                    <signal name="format-value" handler="tracker_preferences_hscale_drop_device_threshold_format_value_cb" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -635,8 +536,10 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                       <object class="GtkLabel" id="label7">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Garbage Collection&lt;/b&gt;</property>
-                        <property name="use_markup">True</property>
+                        <property name="label" translatable="yes">Garbage Collection</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
                       </object>
                     </child>
                   </object>
@@ -646,13 +549,7 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                     <property name="position">2</property>
                   </packing>
                 </child>
-                <child>
-                  <placeholder/>
-                </child>
               </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
             </child>
             <child type="tab">
               <object class="GtkLabel" id="label12">
@@ -661,18 +558,18 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                 <property name="label" translatable="yes">Indexing</property>
               </object>
               <packing>
-                <property name="position">1</property>
                 <property name="tab_fill">False</property>
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox2">
+              <object class="GtkBox" id="vbox_locations">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="border_width">12</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">18</property>
                 <child>
-                  <object class="GtkFrame" id="frame1">
+                  <object class="GtkFrame" id="frame_locations">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label_xalign">0</property>
@@ -684,14 +581,16 @@ This option allows you to make Tracker take a back seat and not eat up too much 
                         <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <object class="GtkVBox" id="vbox14">
+                          <object class="GtkBox" id="vbox14">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
                             <property name="spacing">18</property>
                             <child>
-                              <object class="GtkVBox" id="vbox5">
+                              <object class="GtkBox" id="vbox5">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
                                 <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkLabel" id="label8">
@@ -704,6 +603,7 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                     <property name="use_markup">True</property>
                                     <property name="justify">fill</property>
                                     <property name="wrap">True</property>
+                                    <property name="max_width_chars">40</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -712,7 +612,7 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkHBox" id="hbox7">
+                                  <object class="GtkBox" id="hbox7">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="spacing">6</property>
@@ -722,7 +622,6 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
                                         <property name="tooltip_markup" translatable="yes">Index Home Directory</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="relief">none</property>
                                         <signal name="toggled" handler="tracker_preferences_togglebutton_home_toggled_cb" swapped="no"/>
                                         <child>
@@ -748,7 +647,6 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
                                         <property name="tooltip_markup" translatable="yes">Index Desktop Directory</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="relief">none</property>
                                         <signal name="toggled" handler="tracker_preferences_togglebutton_desktop_toggled_cb" swapped="no"/>
                                         <child>
@@ -774,7 +672,6 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
                                         <property name="tooltip_markup" translatable="yes">Index Documents Directory</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="relief">none</property>
                                         <signal name="toggled" handler="tracker_preferences_togglebutton_documents_toggled_cb" swapped="no"/>
                                         <child>
@@ -799,7 +696,6 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
                                         <property name="tooltip_markup" translatable="yes">Index Music Directory</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="relief">none</property>
                                         <signal name="toggled" handler="tracker_preferences_togglebutton_music_toggled_cb" swapped="no"/>
                                         <child>
@@ -824,7 +720,6 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
                                         <property name="tooltip_markup" translatable="yes">Index Pictures Directory</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="relief">none</property>
                                         <signal name="toggled" handler="tracker_preferences_togglebutton_pictures_toggled_cb" swapped="no"/>
                                         <child>
@@ -849,7 +744,6 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
                                         <property name="tooltip_markup" translatable="yes">Index Videos Directory</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="relief">none</property>
                                         <signal name="toggled" handler="tracker_preferences_togglebutton_videos_toggled_cb" swapped="no"/>
                                         <child>
@@ -874,7 +768,6 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
                                         <property name="tooltip_markup" translatable="yes">Index Download Directory</property>
-                                        <property name="use_action_appearance">False</property>
                                         <property name="relief">none</property>
                                         <signal name="toggled" handler="tracker_preferences_togglebutton_download_toggled_cb" swapped="no"/>
                                         <child>
@@ -901,7 +794,7 @@ If a directory is toggled to &lt;b&gt;Recurse&lt;/b&gt;, it means that all sub-d
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkHBox" id="hbox_duplicate_warning">
+                                  <object class="GtkBox" id="hbox_duplicate_warning">
                                     <property name="can_focus">False</property>
                                     <property name="spacing">6</property>
                                     <child>
@@ -947,11 +840,12 @@ Those which are the same are disabled!</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkVBox" id="vbox3">
+                              <object class="GtkBox" id="vbox3">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
                                 <child>
-                                  <object class="GtkHBox" id="hbox1">
+                                  <object class="GtkBox" id="hbox1">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="spacing">6</property>
@@ -968,6 +862,9 @@ Those which are the same are disabled!</property>
                                             <property name="headers_clickable">False</property>
                                             <property name="rules_hint">True</property>
                                             <property name="search_column">0</property>
+                                            <child internal-child="selection">
+                                              <object class="GtkTreeSelection" id="treeview-selection1"/>
+                                            </child>
                                           </object>
                                         </child>
                                       </object>
@@ -978,9 +875,10 @@ Those which are the same are disabled!</property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkVBox" id="vbox23">
+                                      <object class="GtkBox" id="vbox23">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="orientation">vertical</property>
                                         <property name="spacing">6</property>
                                         <child>
                                           <object class="GtkButton" id="button_index_add">
@@ -988,7 +886,6 @@ Those which are the same are disabled!</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
                                             <property name="tooltip_markup" translatable="yes">Add directory to be indexed</property>
-                                            <property name="use_action_appearance">False</property>
                                             <signal name="clicked" handler="tracker_preferences_button_index_add_clicked_cb" swapped="no"/>
                                             <child>
                                               <object class="GtkImage" id="image3">
@@ -1010,7 +907,6 @@ Those which are the same are disabled!</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
                                             <property name="tooltip_markup" translatable="yes">Remove directory from being indexed</property>
-                                            <property name="use_action_appearance">False</property>
                                             <signal name="clicked" handler="tracker_preferences_button_index_remove_clicked_cb" swapped="no"/>
                                             <child>
                                               <object class="GtkImage" id="image4">
@@ -1058,8 +954,10 @@ Those which are the same are disabled!</property>
                       <object class="GtkLabel" id="label1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Where is your content?&lt;/b&gt;</property>
-                        <property name="use_markup">True</property>
+                        <property name="label" translatable="yes">Where is your content?</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
                       </object>
                     </child>
                   </object>
@@ -1071,7 +969,7 @@ Those which are the same are disabled!</property>
                 </child>
               </object>
               <packing>
-                <property name="position">2</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child type="tab">
@@ -1081,15 +979,16 @@ Those which are the same are disabled!</property>
                 <property name="label" translatable="yes">Locations</property>
               </object>
               <packing>
-                <property name="position">2</property>
+                <property name="position">1</property>
                 <property name="tab_fill">False</property>
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox4">
+              <object class="GtkBox" id="vbox_ignored_content">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="border_width">12</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">18</property>
                 <child>
                   <object class="GtkFrame" id="frame_ignored_directories">
@@ -1104,15 +1003,16 @@ Those which are the same are disabled!</property>
                         <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <object class="GtkHBox" id="hbox2">
+                          <object class="GtkBox" id="hbox2">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="spacing">12</property>
                             <property name="homogeneous">True</property>
                             <child>
-                              <object class="GtkVBox" id="vbox_ignored_directories">
+                              <object class="GtkBox" id="vbox_ignored_directories">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
                                 <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkLabel" id="label10">
@@ -1128,7 +1028,7 @@ Those which are the same are disabled!</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkHBox" id="hbox6">
+                                  <object class="GtkBox" id="hbox6">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="spacing">6</property>
@@ -1145,6 +1045,9 @@ Those which are the same are disabled!</property>
                                             <property name="headers_visible">False</property>
                                             <property name="rules_hint">True</property>
                                             <property name="search_column">0</property>
+                                            <child internal-child="selection">
+                                              <object class="GtkTreeSelection" id="treeview-selection2"/>
+                                            </child>
                                           </object>
                                         </child>
                                       </object>
@@ -1155,9 +1058,10 @@ Those which are the same are disabled!</property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkVBox" id="vbox25">
+                                      <object class="GtkBox" id="vbox25">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="orientation">vertical</property>
                                         <property name="spacing">6</property>
                                         <child>
                                           <object class="GtkButton" id="button_ignored_directories_globs_add">
@@ -1165,7 +1069,6 @@ Those which are the same are disabled!</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
                                             <property name="tooltip_text" translatable="yes">Opens text entry for glob patterns</property>
-                                            <property name="use_action_appearance">False</property>
                                             <signal name="clicked" handler="tracker_preferences_button_ignored_directories_globs_add_clicked_cb" swapped="no"/>
                                             <child>
                                               <object class="GtkImage" id="image6">
@@ -1186,7 +1089,6 @@ Those which are the same are disabled!</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
-                                            <property name="use_action_appearance">False</property>
                                             <signal name="clicked" handler="tracker_preferences_button_ignored_directories_remove_clicked_cb" swapped="no"/>
                                             <child>
                                               <object class="GtkImage" id="image7">
@@ -1208,7 +1110,6 @@ Those which are the same are disabled!</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
                                             <property name="tooltip_text" translatable="yes">Opens the filechooser dialogue</property>
-                                            <property name="use_action_appearance">False</property>
                                             <signal name="clicked" handler="tracker_preferences_button_ignored_directories_add_clicked_cb" swapped="no"/>
                                             <child>
                                               <object class="GtkImage" id="image2">
@@ -1246,9 +1147,10 @@ Those which are the same are disabled!</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkVBox" id="vbox_ignored_directories_with_content">
+                              <object class="GtkBox" id="vbox_ignored_directories_with_content">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
                                 <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkLabel" id="label5">
@@ -1264,7 +1166,7 @@ Those which are the same are disabled!</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkHBox" id="hbox5">
+                                  <object class="GtkBox" id="hbox5">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="spacing">6</property>
@@ -1281,6 +1183,9 @@ Those which are the same are disabled!</property>
                                             <property name="headers_visible">False</property>
                                             <property name="rules_hint">True</property>
                                             <property name="search_column">0</property>
+                                            <child internal-child="selection">
+                                              <object class="GtkTreeSelection" id="treeview-selection3"/>
+                                            </child>
                                           </object>
                                         </child>
                                       </object>
@@ -1291,16 +1196,16 @@ Those which are the same are disabled!</property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkVBox" id="vbox8">
+                                      <object class="GtkBox" id="vbox8">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="orientation">vertical</property>
                                         <property name="spacing">6</property>
                                         <child>
                                           <object class="GtkButton" id="button_ignored_directories_with_content_add">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
-                                            <property name="use_action_appearance">False</property>
                                             <signal name="clicked" handler="tracker_preferences_button_ignored_directories_with_content_add_clicked_cb" swapped="no"/>
                                             <child>
                                               <object class="GtkImage" id="image12">
@@ -1321,7 +1226,6 @@ Those which are the same are disabled!</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">True</property>
-                                            <property name="use_action_appearance">False</property>
                                             <signal name="clicked" handler="tracker_preferences_button_ignored_directories_with_content_remove_clicked_cb" swapped="no"/>
                                             <child>
                                               <object class="GtkImage" id="image13">
@@ -1395,9 +1299,10 @@ Those which are the same are disabled!</property>
                         <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <object class="GtkVBox" id="vbox_ignored_files">
+                          <object class="GtkBox" id="vbox_ignored_files">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
                             <property name="spacing">6</property>
                             <child>
                               <object class="GtkLabel" id="label11">
@@ -1413,7 +1318,7 @@ Those which are the same are disabled!</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkHBox" id="hbox3">
+                              <object class="GtkBox" id="hbox3">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="spacing">6</property>
@@ -1433,6 +1338,9 @@ Most commonly this is used to ignore directories like *~, *.o, *.la, etc</proper
                                         <property name="headers_clickable">False</property>
                                         <property name="rules_hint">True</property>
                                         <property name="search_column">0</property>
+                                        <child internal-child="selection">
+                                          <object class="GtkTreeSelection" id="treeview-selection4"/>
+                                        </child>
                                       </object>
                                     </child>
                                   </object>
@@ -1443,16 +1351,16 @@ Most commonly this is used to ignore directories like *~, *.o, *.la, etc</proper
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkVBox" id="vbox6">
+                                  <object class="GtkBox" id="vbox6">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
+                                    <property name="orientation">vertical</property>
                                     <property name="spacing">6</property>
                                     <child>
                                       <object class="GtkButton" id="button_ignored_files_add">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <property name="use_action_appearance">False</property>
                                         <signal name="clicked" handler="tracker_preferences_button_ignored_files_add_clicked_cb" swapped="no"/>
                                         <child>
                                           <object class="GtkImage" id="image8">
@@ -1473,7 +1381,6 @@ Most commonly this is used to ignore directories like *~, *.o, *.la, etc</proper
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="receives_default">True</property>
-                                        <property name="use_action_appearance">False</property>
                                         <signal name="clicked" handler="tracker_preferences_button_ignored_files_remove_clicked_cb" swapped="no"/>
                                         <child>
                                           <object class="GtkImage" id="image9">
@@ -1529,17 +1436,335 @@ Most commonly this is used to ignore directories like *~, *.o, *.la, etc</proper
                 </child>
               </object>
               <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel" id="label3">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Ignored Content</property>
+              </object>
+              <packing>
+                <property name="position">2</property>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="vbox_control">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="border_width">12</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">18</property>
+                <child>
+                  <object class="GtkFrame" id="frame_what_is_indexed">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">none</property>
+                    <child>
+                      <object class="GtkAlignment" id="alignment9">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="top_padding">6</property>
+                        <property name="left_padding">12</property>
+                        <child>
+                          <object class="GtkBox" id="vbox4">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">18</property>
+                            <child>
+                              <object class="GtkBox" id="vbox10">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkCheckButton" id="checkbutton_index_file_content">
+                                    <property name="label" translatable="yes">Index content of _files found</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">False</property>
+                                    <property name="use_underline">True</property>
+                                    <property name="xalign">0</property>
+                                    <property name="draw_indicator">True</property>
+                                    <signal name="toggled" handler="tracker_preferences_checkbutton_index_file_content_toggled_cb" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="checkbutton_index_numbers">
+                                    <property name="label" translatable="yes">Index _numbers</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="receives_default">False</property>
+                                    <property name="use_underline">True</property>
+                                    <property name="xalign">0</property>
+                                    <property name="draw_indicator">True</property>
+                                    <signal name="toggled" handler="tracker_preferences_checkbutton_index_numbers_toggled_cb" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel" id="label19">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">What is indexed?</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel" id="label16">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Control</property>
+              </object>
+              <packing>
+                <property name="position">3</property>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="vbox_system">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="border_width">12</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">18</property>
+                <child>
+                  <object class="GtkFrame" id="frame_reset_data">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">none</property>
+                    <child>
+                      <object class="GtkAlignment" id="alignment6">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="top_padding">6</property>
+                        <property name="left_padding">12</property>
+                        <child>
+                          <object class="GtkBox" id="vbox1">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">18</property>
+                            <child>
+                              <object class="GtkLabel" id="label15">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="xalign">0</property>
+                                <property name="label" translatable="yes">When resetting your indexed data, the databases are removed and your files will no longer be indexed. Upon next start, Tracker will then start indexing data as if it was being run for the first time.
+
+&lt;b&gt;Warning: All data indexed will be removed! It can not be retrieved!&lt;/b&gt;
+
+Clicking this button will close the preferences too.</property>
+                                <property name="use_markup">True</property>
+                                <property name="justify">fill</property>
+                                <property name="wrap">True</property>
+                                <property name="max_width_chars">40</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="button_reindex">
+                                <property name="label" translatable="yes">Yes, remove all of my indexed data</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="receives_default">True</property>
+                                <signal name="clicked" handler="tracker_preferences_button_reindex_clicked_cb" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel" id="label17">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Reset Indexed Data</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <object class="GtkFrame" id="frame_delay">
+                    <property name="can_focus">False</property>
+                    <property name="no_show_all">True</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">none</property>
+                    <child>
+                      <object class="GtkAlignment" id="alignment1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="top_padding">6</property>
+                        <property name="left_padding">12</property>
+                        <child>
+                          <object class="GtkBox" id="vbox_general">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="GtkBox" id="hbox_delay">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="spacing">12</property>
+                                <child>
+                                  <object class="GtkLabel" id="label_delay">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label" translatable="yes">_Delay</property>
+                                    <property name="use_underline">True</property>
+                                    <property name="mnemonic_widget">spinbutton_delay</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox" id="hbox16">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="spacing">6</property>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spinbutton_delay">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="invisible_char">●</property>
+                                        <property name="primary_icon_activatable">False</property>
+                                        <property name="secondary_icon_activatable">False</property>
+                                        <property name="adjustment">adjustment_delay</property>
+                                        <property name="climb_rate">1</property>
+                                        <property name="snap_to_ticks">True</property>
+                                        <property name="numeric">True</property>
+                                        <signal name="value-changed" handler="tracker_preferences_spinbutton_delay_value_changed_cb" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="label_delay_seconds">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">seconds</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">False</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel" id="label_general">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Start up</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="position">4</property>
               </packing>
             </child>
             <child type="tab">
               <object class="GtkLabel" id="label4">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Ignored Content</property>
+                <property name="label" translatable="yes">System</property>
               </object>
               <packing>
-                <property name="position">3</property>
+                <property name="position">4</property>
                 <property name="tab_fill">False</property>
               </packing>
             </child>
